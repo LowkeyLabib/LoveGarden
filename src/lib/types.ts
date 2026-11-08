@@ -1,5 +1,5 @@
 export type Role = 'GARDENER' | 'CARETAKER' | 'GUEST';
-export type Seed = { id:string; spot:number; flower_type:string; planted_at:string; watered_at:string|null; opened_at:string|null };
+export type Seed = { id:string; spot:number; flower_type:string; planted_at:string; watered_at:string|null; opened_at:string|null; removed_at?:string|null };
 export type Gift = {id:string; kind:string; location:number; created_at:string; claimed_at:string|null};
 export type Content = {message:string; spotify_url:string|null; photo_path:string|null; caption:string; photoUrl?:string};
 export type Catalog = {id:string; name:string; description:string; price:number};

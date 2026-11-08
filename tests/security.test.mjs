@@ -18,8 +18,7 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
  alter table storage.objects enable row level security;
  grant usage on schema storage to anon,authenticated; grant select,insert,delete on storage.objects to anon,authenticated;
  insert into auth.users values('${gardener}'),('${caretaker}'),('${stranger}');`);
- const migration=(await readdir('supabase/migrations')).find(f=>f.endsWith('_lovegarden.sql'));
- await db.exec((await readFile(`supabase/migrations/${migration}`,'utf8')).replace(/^\uFEFF/,''));
+ for(const migration of (await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort())await db.exec((await readFile(`supabase/migrations/${migration}`,'utf8')).replace(/^\uFEFF/,''));
  await db.exec(`insert into public.profiles values('${gardener}','GARDENER'),('${caretaker}','CARETAKER');`);
  const as=async(user,role='authenticated')=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[user||'']);await db.exec(`set role ${role}`);};
  const one=async(sql,params=[]) => (await db.query(sql,params)).rows[0];
@@ -85,6 +84,47 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   await as(gardener);await assert.rejects(()=>db.query('select public.place_decoration($1,0)',[purchase]),/caretaker/);
   await as(null,'anon');assert.equal((await one('select count(*)::int n from public.decorations')).n,1);
   const publicSeed=await one('select * from public.seeds');assert.equal('message' in publicSeed,false);assert.equal('photo_path' in publicSeed,false);
+ });
+ await t.test('claimed flowers expire by real timestamps, release spots offline and keep history',async()=>{
+  await as(gardener);
+  const replacement=crypto.randomUUID();
+  const replant=()=>db.query('select public.plant_seed($1,0,$2,$3,null,null,$4)',[replacement,'daisy','A new chapter','']);
+  await db.exec('reset role');await db.query("update public.seeds set opened_at=now()-interval '119 seconds' where id=$1",[flower]);await as(gardener);
+  await assert.rejects(replant,/already holds/);
+  await db.exec('reset role');await db.query("update public.seeds set opened_at=now()-interval '121 seconds' where id=$1",[flower]);await as(gardener);
+  await replant();await replant();
+  assert.equal((await one('select count(*)::int n from public.seeds where spot=0')).n,2);
+  assert.equal((await one('select message from public.flower_content where seed_id=$1',[flower])).message,'Only for us');
+  await db.query('select public.open_memory($1,$2)',[replacement,'flower']);
+  assert.equal((await one('select opened_at from public.seeds where id=$1',[replacement])).opened_at,null);
+  await assert.rejects(()=>db.query('select public.plant_seed($1,0,$2,$3,null,null,$4)',[crypto.randomUUID(),'rose','Collision','']),/already holds/);
+  await as(caretaker);assert.equal((await one('select public.open_memory($1,$2) result',[flower,'flower'])).result.awarded,0);
+  assert.equal((await one('select balance from public.wallets')).balance,35);
+  assert.equal((await one('select count(*)::int n from public.point_transactions')).n,3);
+ });
+ await t.test('only the gardener can soft-remove, including direct private RPC attempts',async()=>{
+  for(const user of [caretaker,stranger]){await as(user);await assert.rejects(()=>db.query('select public.remove_seed($1)',[flower]),/gardener/);await assert.rejects(()=>db.query('select private.remove_seed($1)',[flower]),/gardener/);await assert.rejects(()=>db.query('update public.seeds set removed_at=now() where id=$1',[flower]),/permission denied/);}
+  await as(null,'anon');await assert.rejects(()=>db.query('select public.remove_seed($1)',[flower]),/permission denied/);
+  await as(gardener);await assert.rejects(()=>db.query('delete from public.seeds where id=$1',[flower]),/permission denied/);
+  const first=await one('select public.remove_seed($1) stamp',[flower]);assert.ok(first.stamp);
+  assert.deepEqual((await one('select public.remove_seed($1) stamp',[flower])).stamp,first.stamp);
+  await as(caretaker);const memory=(await one('select public.open_memory($1,$2) result',[flower,'flower'])).result;
+  assert.equal(memory.awarded,0);assert.equal(memory.message,'Only for us');assert.equal((await one('select balance from public.wallets')).balance,35);
+ });
+ await t.test('unclaimed seeds, sprouts, buds and blooms remove without rewards or lost media',async()=>{
+  for(let stage=0;stage<4;stage++){
+   const id=crypto.randomUUID(),slot=stage+1;await as(gardener);
+   await db.query('select public.plant_seed($1,$2,$3,$4,$5,$6,$7)',[id,slot,'rose','Keep the original','https://open.spotify.com/track/0123456789012345678901',gardener+'/photo.jpg','Our photograph']);
+   if(stage){await db.exec('reset role');await db.query("update public.seeds set watered_at=now()-($2::int * interval '1 second') where id=$1",[id,stage===3?86400:stage===2?150:1]);}
+   await as(gardener);await db.query('select public.remove_seed($1)',[id]);
+   const kept=await one('select * from public.flower_content where seed_id=$1',[id]);assert.equal(kept.caption,'Our photograph');assert.equal(kept.photo_path,gardener+'/photo.jpg');assert.ok(kept.spotify_url);
+   assert.equal((await one('select opened_at from public.seeds where id=$1',[id])).opened_at,null);
+   await db.query('select public.plant_seed($1,$2,$3,$4,null,null,$5)',[crypto.randomUUID(),slot,'tulip','Ready immediately','']);
+   await as(caretaker);await assert.rejects(()=>db.query('select public.water_seed($1)',[id]),/left the garden/);await assert.rejects(()=>db.query('select public.open_memory($1,$2)',[id,'flower']),/removed before/);
+  }
+  assert.equal((await one('select balance from public.wallets')).balance,35);
+  assert.equal((await one('select count(*)::int n from public.point_transactions')).n,3);
+  assert.equal((await one('select count(*)::int n from storage.objects')).n,1);
  });
  await t.test('SQL and frontend agree on daylight at boundaries and before the epoch',async()=>{
   await db.exec('reset role');

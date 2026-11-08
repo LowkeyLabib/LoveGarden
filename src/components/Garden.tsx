@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent, ReactNode } from 'react';
 import type { GardenState, Seed, Gift } from '../lib/types';
 import { growth, clockState } from '../lib/clock.mjs';
+import {isActiveFlower,departingFlowers,FLOWER_FADE_MS} from '../lib/flowers';
 import { Icon } from './Art';
 import { PixelSprite } from '../garden/PixelSprite';
 import { iso, spots, hidingPlaces, decorSlots, scenery } from '../garden/world';
@@ -14,8 +15,17 @@ const diamond='0,-15 29,0 0,15 -29,0';
 export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:Props){
  const ref=useRef<SVGSVGElement>(null);
  const [aspect,setAspect]=useState(1.7);
+ const visiblePlants=useRef<Seed[]|null>(null);
+ const [departures,setDepartures]=useState<{seed:Seed;stage:number;until:number}[]>([]);
  const [awake,setAwake]=useState(document.visibilityState==='visible');
- useEffect(()=>{const visibility=()=>setAwake(document.visibilityState==='visible');document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility);},[]);
+ useEffect(()=>{const visibility=()=>{visiblePlants.current=null;setDepartures([]);setAwake(document.visibilityState==='visible');};document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility);},[]);
+ useEffect(()=>{
+  if(!awake){visiblePlants.current=null;return;}
+  const leaving=departingFlowers(visiblePlants.current,state.seeds,now);
+  visiblePlants.current=state.seeds.filter(seed=>isActiveFlower(seed,now));
+  if(leaving.length&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setDepartures(old=>[...old,...leaving.map(seed=>({seed,stage:!seed.watered_at?0:growth(seed.watered_at,now,state.epoch)===1?3:growth(seed.watered_at,now,state.epoch)<.33?1:2,until:performance.now()+FLOWER_FADE_MS}))]);
+ },[state.seeds,state.epoch,now,awake]);
+ useEffect(()=>{if(!departures.length)return;const timer=window.setTimeout(()=>setDepartures(old=>old.filter(item=>item.until>performance.now())),Math.max(0,Math.min(...departures.map(item=>item.until))-performance.now()));return()=>window.clearTimeout(timer);},[departures]);
  const [camera,setCamera]=useState(initialCamera);
  const [effects,setEffects]=useState<Effect[]>([]);
  const previous=useRef<Map<string,{watered:boolean;bloom:boolean;claimed:boolean}>|null>(null);
@@ -31,7 +41,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  // Feedback observes public state transitions; rewards and growth remain authoritative.
  useEffect(()=>{
   const next=new Map<string,{watered:boolean;bloom:boolean;claimed:boolean}>(), additions:Effect[]=[];
-  for(const seed of state.seeds){const value={watered:!!seed.watered_at,bloom:growth(seed.watered_at,now,state.epoch)===1,claimed:false};next.set(seed.id,value);const old=previous.current?.get(seed.id),p=spots[seed.spot];if(old&&p){if(!old.watered&&value.watered)additions.push({...p,id:seed.id,kind:'water'});else if(!old.bloom&&value.bloom)additions.push({...p,id:seed.id,kind:'bloom'});}}
+  for(const seed of state.seeds.filter(seed=>isActiveFlower(seed,now))){const value={watered:!!seed.watered_at,bloom:growth(seed.watered_at,now,state.epoch)===1,claimed:false};next.set(seed.id,value);const old=previous.current?.get(seed.id),p=spots[seed.spot];if(old&&p){if(!old.watered&&value.watered)additions.push({...p,id:seed.id,kind:'water'});else if(!old.bloom&&value.bloom)additions.push({...p,id:seed.id,kind:'bloom'});}}
   for(const gift of state.gifts){const value={watered:false,bloom:false,claimed:!!gift.claimed_at};next.set(gift.id,value);const old=previous.current?.get(gift.id),p=hidingPlaces[gift.location];if(old&&!old.claimed&&value.claimed&&p)additions.push({id:gift.id,...p,kind:'gift'});}
   previous.current=next;if(additions.length)setEffects(e=>[...e,...additions]);
  },[state.seeds,state.gifts,state.epoch,now]);
@@ -50,13 +60,14 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  const pointerEnd=(e:PointerEvent<SVGSVGElement>)=>{pointers.current.delete(e.pointerId);const remaining=[...pointers.current.values()][0];if(remaining){drag.current.x=remaining.x;drag.current.y=remaining.y;}const target=e.target as Element;if(target.hasPointerCapture(e.pointerId))target.releasePointerCapture(e.pointerId);};
  const objectProps=(label:string,action:()=>void)=>({role:'button',tabIndex:0,'aria-label':label,className:'world-object',onClick:()=>{if(!drag.current.moved)action();},onKeyDown:(e:KeyboardEvent)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action();}}});
  const objects:{key:string;y:number;x:number;node:ReactNode}[]=scenery.map((s,i)=>({key:`scene-${i}`,x:s.x,y:s.y,node:<g className={s.name==='butterfly-small'?'garden-butterfly':undefined} style={{animationDelay:`${-i*.37}s`}}><PixelSprite {...s}/></g>}));
- for(const spot of spots){const seed=state.seeds.find(s=>s.spot===spot.id);const value=seed?growth(seed.watered_at,now,state.epoch):0;const stage=!seed?.watered_at?0:value===1?3:value<.33?1:2;const status=!seed?.watered_at?'needs water':stage===3?'in bloom':stage===1?'sprouting':'budding';
+ for(const spot of spots){const seed=state.seeds.find(s=>s.spot===spot.id&&isActiveFlower(s,now));const value=seed?growth(seed.watered_at,now,state.epoch):0;const stage=!seed?.watered_at?0:value===1?3:value<.33?1:2;const status=!seed?.watered_at?'needs water':stage===3?'in bloom':stage===1?'sprouting':'budding';
   objects.push({key:`plot-${spot.id}`,x:spot.x,y:spot.y,node:<g transform={`translate(${spot.x} ${spot.y})`}><g {...objectProps(seed?`Plot ${spot.id+1}: ${seed.flower_type}, ${status}`:`Empty plot ${spot.id+1}${state.role==='GARDENER'?', plant a memory':''}`,()=>seed?onSeed(seed):onSpot(spot.id))}>
    <polygon points={diamond} className="plot-focus"/>{seed&&<rect x="-16" y="-38" width="32" height="42" fill="transparent"/>}</g>
    {seed?<><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{stage===3&&!seed.opened_at&&<path className="bloom-spark" d="M17-33v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/>}{!seed.watered_at&&state.role==='CARETAKER'&&<path d="m13-18 3-5 3 5v3h-6Z" fill="#bcf0ee" stroke="#38677e"/>}</>:<PixelSprite name="marker" x={16} y={-1}/>}
    <title>{seed?`${seed.flower_type} · ${status}`:`Plot ${spot.id+1}`}</title>
   </g>});
  }
+ for(const {seed,stage} of departures){const p=spots[seed.spot];if(p&&!state.seeds.some(s=>s.spot===seed.spot&&isActiveFlower(s,now)))objects.push({key:'departing-'+seed.id,x:p.x,y:p.y,node:<g transform={`translate(${p.x} ${p.y})`} pointerEvents="none" aria-hidden="true"><g className="flower-departure"><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{[-15,-7,1,9,17].map((x,i)=><g key={x} transform={`translate(${x} ${-17-i%3*7})`}><path className="departure-petal" d="M0 0h3v2H1v1H0Z" fill={seed.flower_type==='bluebell'?'#b8d8e3':seed.flower_type==='daisy'?'#f7dfa3':'#efbacb'} style={{animationDelay:`${i*.09}s`}}/></g>)}</g></g>});}
  for(const gift of state.gifts){const p=hidingPlaces[gift.location];if(!p||gift.claimed_at)continue;objects.push({key:gift.id,...p,node:<g transform={`translate(${p.x} ${p.y})`}><g {...objectProps(`Discover ${gift.kind} ${p.name.toLowerCase()}`,()=>onGift(gift))}><rect className="gift-focus" x="-19" y="-38" width="38" height="45" rx="2"/></g><PixelSprite name={`gift-${gift.kind}`}/><path className="bloom-spark" d="M18-32v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/></g>});}
  for(const decoration of state.decorations){const p=decorSlots[decoration.slot];if(p)objects.push({key:decoration.inventory_id,...p,node:<g data-decoration={decoration.catalog_id} data-slot={decoration.slot}><PixelSprite name={decoration.catalog_id} {...p}/></g>});}
  objects.sort((a,b)=>a.y-b.y||a.x-b.x);

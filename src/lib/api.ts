@@ -60,7 +60,7 @@ export async function uploadPhoto(file:File){
  if(uploadError) throw uploadError;
  return path;
 }
-export async function openMemory(id:string,kind:'flower'|'gift'):Promise<Content & {awarded:number}>{
+export async function openMemory(id:string,kind:'flower'|'gift'):Promise<Content & {awarded:number;opened_at?:string|null}>{
  const content=await rpc('open_memory',{p_id:id,p_kind:kind});
  return content;
 }

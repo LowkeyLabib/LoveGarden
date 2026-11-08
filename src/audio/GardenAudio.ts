@@ -29,6 +29,7 @@ export class GardenAudio{
   this.options=options;this.notify=notify;this.createContext=createContext;
  }
  setOptions(options:Options){this.options=options;void this.synchronize();}
+ start(){if(this.disposed)return;this.active=true;void this.synchronize();}
  unlock(){if(this.disposed)return;const first=!this.active;this.active=true;if(first||this.status==='blocked'||(this.context&&this.context.state!=='running'&&this.status!=='error')){try{void this.graph().resume().then(()=>this.synchronize()).catch(()=>this.publish('blocked'));}catch{this.publish('error');}}}
  retry(){if(this.disposed)return;this.active=true;try{void this.graph().resume().then(()=>this.synchronize()).catch(()=>this.publish('blocked'));}catch{this.publish('error');}}
  private publish(status:AudioStatus){if(!this.disposed&&this.status!==status){this.status=status;this.notify(status);}}

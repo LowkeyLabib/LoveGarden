@@ -55,3 +55,17 @@ test('disposing during a pending download cannot start late audio',async t=>{
  assert.equal(pending.length,2);audio.dispose();pending.forEach(resolve=>resolve(response()));await settle();
  assert.equal(ctx.sources.length,0);assert.equal(ctx.state,'closed');assert.ok(signals.every(signal=>signal.aborted));
 });
+
+test('autoplay starts when allowed, respects saved mute, and recovers on a gesture',async t=>{
+ t.mock.method(globalThis,'fetch',async()=>response());
+ const allowed=new Context();const music=new GardenAudio(options,()=>{},()=>allowed);t.after(()=>music.dispose());
+ music.start();await settle();assert.equal(allowed.sources.length,1);
+ music.unlock();await settle();assert.equal(allowed.sources.length,1);
+ const muted=new Context();const quiet=new GardenAudio({...options,muted:true},()=>{},()=>muted);t.after(()=>quiet.dispose());
+ quiet.start();await settle();assert.equal(muted.sources.length,0);
+ const blocked=new Context();const statuses=[];let gesture=false;
+ blocked.resume=()=>{if(!gesture)return Promise.reject(new DOMException('Gesture required','NotAllowedError'));blocked.state='running';return Promise.resolve();};
+ const waiting=new GardenAudio(options,status=>statuses.push(status),()=>blocked);t.after(()=>waiting.dispose());
+ waiting.start();await settle();assert.equal(statuses.at(-1),'blocked');assert.equal(blocked.sources.length,0);
+ gesture=true;waiting.unlock();await settle();assert.equal(statuses.at(-1),'playing');assert.equal(blocked.sources.length,1);
+});
