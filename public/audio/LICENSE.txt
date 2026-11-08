@@ -1,0 +1,5 @@
+LoveGarden original soundtrack
+
+Morning Letters (day) and Moonlit Petals (night) are original compositions created for LoveGarden. Instruments are synthesized from mathematical models; no third-party recordings, samples, melodies, or commercial game music are used.
+
+These recordings and their source composition in scripts/music.mjs are dedicated to the public domain under CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/

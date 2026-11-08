@@ -16,6 +16,7 @@ export function Icon({name,size=22,...rest}:{name:string;size?:number;className?
  gift:<><path d="M3 10h18v4H3zM5 14v8h14v-8M12 10v12"/><path d="M12 10C0 10 5 0 9 5l3 5c12 0 7-10 3-5l-3 5Z"/></>,
  lock:<><rect x="5" y="10" width="14" height="12" rx="3"/><path d="M8 10V6a4 4 0 0 1 8 0v4m-4 5v3"/></>,
  sound:<><path d="m3 9 5 0 5-5v16l-5-5H3ZM17 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/></>,
+ music:<><path d="M9 18V5l12-3v13M9 9l12-3"/><ellipse cx="6" cy="18" rx="3" ry="2"/><ellipse cx="18" cy="15" rx="3" ry="2"/></>,
  mute:<><path d="m3 9 5 0 5-5v16l-5-5H3Zm14 0 5 6m0-6-5 6"/></>,
  user:<><circle cx="12" cy="7" r="4"/><path d="M4 22v-3a8 8 0 0 1 16 0v3"/></>,
  reset:<><path d="M5 8a8 8 0 1 1-1 8M5 3v6h6"/></>,
