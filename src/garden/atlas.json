@@ -1,0 +1,430 @@
+{
+  "width": 512,
+  "height": 409,
+  "frames": {
+    "plot": {
+      "x": 0,
+      "y": 0,
+      "w": 52,
+      "h": 30,
+      "anchorX": 26,
+      "anchorY": 16
+    },
+    "marker": {
+      "x": 54,
+      "y": 0,
+      "w": 13,
+      "h": 22,
+      "anchorX": 6,
+      "anchorY": 21
+    },
+    "flower-rose-0": {
+      "x": 69,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-rose-1": {
+      "x": 105,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-rose-2": {
+      "x": 141,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-rose-3": {
+      "x": 177,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-daisy-0": {
+      "x": 213,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-daisy-1": {
+      "x": 249,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-daisy-2": {
+      "x": 285,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-daisy-3": {
+      "x": 321,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-tulip-0": {
+      "x": 357,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-tulip-1": {
+      "x": 393,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-tulip-2": {
+      "x": 429,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-tulip-3": {
+      "x": 465,
+      "y": 0,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-lavender-0": {
+      "x": 0,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-lavender-1": {
+      "x": 36,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-lavender-2": {
+      "x": 72,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-lavender-3": {
+      "x": 108,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-cosmos-0": {
+      "x": 144,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-cosmos-1": {
+      "x": 180,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-cosmos-2": {
+      "x": 216,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-cosmos-3": {
+      "x": 252,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-bluebell-0": {
+      "x": 288,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-bluebell-1": {
+      "x": 324,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-bluebell-2": {
+      "x": 360,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "flower-bluebell-3": {
+      "x": 396,
+      "y": 46,
+      "w": 34,
+      "h": 44,
+      "anchorX": 17,
+      "anchorY": 40
+    },
+    "oak": {
+      "x": 432,
+      "y": 46,
+      "w": 72,
+      "h": 96,
+      "anchorX": 36,
+      "anchorY": 92
+    },
+    "cherry": {
+      "x": 0,
+      "y": 144,
+      "w": 72,
+      "h": 96,
+      "anchorX": 36,
+      "anchorY": 92
+    },
+    "pine": {
+      "x": 74,
+      "y": 144,
+      "w": 72,
+      "h": 96,
+      "anchorX": 36,
+      "anchorY": 92
+    },
+    "bush": {
+      "x": 148,
+      "y": 144,
+      "w": 40,
+      "h": 28,
+      "anchorX": 20,
+      "anchorY": 24
+    },
+    "reeds": {
+      "x": 190,
+      "y": 144,
+      "w": 22,
+      "h": 30,
+      "anchorX": 11,
+      "anchorY": 26
+    },
+    "fence-x": {
+      "x": 214,
+      "y": 144,
+      "w": 38,
+      "h": 36,
+      "anchorX": 19,
+      "anchorY": 35
+    },
+    "fence-y": {
+      "x": 254,
+      "y": 144,
+      "w": 38,
+      "h": 36,
+      "anchorX": 19,
+      "anchorY": 27
+    },
+    "rock": {
+      "x": 294,
+      "y": 144,
+      "w": 23,
+      "h": 18,
+      "anchorX": 11,
+      "anchorY": 14
+    },
+    "wildflowers": {
+      "x": 319,
+      "y": 144,
+      "w": 28,
+      "h": 26,
+      "anchorX": 14,
+      "anchorY": 22
+    },
+    "butterfly-small": {
+      "x": 349,
+      "y": 144,
+      "w": 14,
+      "h": 12,
+      "anchorX": 7,
+      "anchorY": 6
+    },
+    "lantern": {
+      "x": 365,
+      "y": 144,
+      "w": 32,
+      "h": 58,
+      "anchorX": 8,
+      "anchorY": 52
+    },
+    "bench": {
+      "x": 399,
+      "y": 144,
+      "w": 64,
+      "h": 47,
+      "anchorX": 32,
+      "anchorY": 39
+    },
+    "cottage": {
+      "x": 0,
+      "y": 242,
+      "w": 90,
+      "h": 100,
+      "anchorX": 45,
+      "anchorY": 91
+    },
+    "birdhouse": {
+      "x": 92,
+      "y": 242,
+      "w": 36,
+      "h": 57,
+      "anchorX": 17,
+      "anchorY": 51
+    },
+    "arch": {
+      "x": 130,
+      "y": 242,
+      "w": 76,
+      "h": 81,
+      "anchorX": 38,
+      "anchorY": 73
+    },
+    "fountain": {
+      "x": 208,
+      "y": 242,
+      "w": 62,
+      "h": 62,
+      "anchorX": 30,
+      "anchorY": 51
+    },
+    "butterfly": {
+      "x": 272,
+      "y": 242,
+      "w": 44,
+      "h": 43,
+      "anchorX": 22,
+      "anchorY": 35
+    },
+    "heart": {
+      "x": 318,
+      "y": 242,
+      "w": 34,
+      "h": 54,
+      "anchorX": 16,
+      "anchorY": 48
+    },
+    "tree": {
+      "x": 354,
+      "y": 242,
+      "w": 72,
+      "h": 96,
+      "anchorX": 36,
+      "anchorY": 92
+    },
+    "seasonal": {
+      "x": 428,
+      "y": 242,
+      "w": 46,
+      "h": 30,
+      "anchorX": 23,
+      "anchorY": 26
+    },
+    "gift-box": {
+      "x": 476,
+      "y": 242,
+      "w": 32,
+      "h": 35,
+      "anchorX": 16,
+      "anchorY": 30
+    },
+    "gift-special": {
+      "x": 0,
+      "y": 344,
+      "w": 32,
+      "h": 35,
+      "anchorX": 16,
+      "anchorY": 30
+    },
+    "gift-teddy": {
+      "x": 34,
+      "y": 344,
+      "w": 35,
+      "h": 42,
+      "anchorX": 17,
+      "anchorY": 37
+    },
+    "gift-letter": {
+      "x": 71,
+      "y": 344,
+      "w": 32,
+      "h": 25,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "gift-bouquet": {
+      "x": 105,
+      "y": 344,
+      "w": 36,
+      "h": 42,
+      "anchorX": 18,
+      "anchorY": 37
+    },
+    "gift-chocolate": {
+      "x": 143,
+      "y": 344,
+      "w": 34,
+      "h": 28,
+      "anchorX": 17,
+      "anchorY": 24
+    },
+    "sign": {
+      "x": 179,
+      "y": 344,
+      "w": 140,
+      "h": 65,
+      "anchorX": 70,
+      "anchorY": 58
+    }
+  }
+}

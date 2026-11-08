@@ -1,0 +1,27 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.supabase/
+supabase/.temp/
+*.log
+
+# Local setup notes, tool metadata, and temporary artifacts
+.local/
+.codex/
+.agents/
+.vscode/
+.idea/
+.qa/
+coverage/
+playwright-report/
+test-results/
+AGENTS.md
+src/garden/README.md
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store
+Thumbs.db

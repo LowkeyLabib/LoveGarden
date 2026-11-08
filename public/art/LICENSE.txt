@@ -1,0 +1,3 @@
+LoveGarden pixel-art assets
+Original artwork authored for this project. No third-party game art or fonts are included.
+The source artwork is reproducible with scripts/pixel-art.mjs.

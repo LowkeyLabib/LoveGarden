@@ -1,0 +1,9 @@
+export type Role = 'GARDENER' | 'CARETAKER' | 'GUEST';
+export type Seed = { id:string; spot:number; flower_type:string; planted_at:string; watered_at:string|null; opened_at:string|null };
+export type Gift = {id:string; kind:string; location:number; created_at:string; claimed_at:string|null};
+export type Content = {message:string; spotify_url:string|null; photo_path:string|null; caption:string; photoUrl?:string};
+export type Catalog = {id:string; name:string; description:string; price:number};
+export type Inventory = {id:string; catalog_id:string; purchased_at:string};
+export type Decoration = {inventory_id:string; catalog_id:string; slot:number};
+export type Transaction = {id:string; amount:number; reason:string; created_at:string};
+export type GardenState = {seeds:Seed[]; gifts:Gift[]; decorations:Decoration[]; catalog:Catalog[]; inventory:Inventory[]; transactions:Transaction[]; balance:number; role:Role; epoch:number; serverTime:number};
