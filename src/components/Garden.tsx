@@ -4,6 +4,7 @@ import type { GardenState, Seed, Gift } from '../lib/types';
 import { growth, clockState } from '../lib/clock.mjs';
 import {isActiveFlower,departingFlowers,FLOWER_FADE_MS} from '../lib/flowers';
 import { Icon } from './Art';
+import StormScene from './StormScene';
 import { PixelSprite } from '../garden/PixelSprite';
 import { iso, spots, hidingPlaces, decorSlots, scenery } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
@@ -20,11 +21,11 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  const [awake,setAwake]=useState(document.visibilityState==='visible');
  useEffect(()=>{const visibility=()=>{visiblePlants.current=null;setDepartures([]);setAwake(document.visibilityState==='visible');};document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility);},[]);
  useEffect(()=>{
-  if(!awake){visiblePlants.current=null;return;}
+  if(!awake||state.angryMode){visiblePlants.current=null;return;}
   const leaving=departingFlowers(visiblePlants.current,state.seeds,now);
   visiblePlants.current=state.seeds.filter(seed=>isActiveFlower(seed,now));
   if(leaving.length&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setDepartures(old=>[...old,...leaving.map(seed=>({seed,stage:!seed.watered_at?0:growth(seed.watered_at,now,state.epoch)===1?3:growth(seed.watered_at,now,state.epoch)<.33?1:2,until:performance.now()+FLOWER_FADE_MS}))]);
- },[state.seeds,state.epoch,now,awake]);
+ },[state.seeds,state.epoch,state.angryMode,now,awake]);
  useEffect(()=>{if(!departures.length)return;const timer=window.setTimeout(()=>setDepartures(old=>old.filter(item=>item.until>performance.now())),Math.max(0,Math.min(...departures.map(item=>item.until))-performance.now()));return()=>window.clearTimeout(timer);},[departures]);
  const [camera,setCamera]=useState(initialCamera);
  const [effects,setEffects]=useState<Effect[]>([]);
@@ -73,10 +74,11 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  objects.sort((a,b)=>a.y-b.y||a.x-b.x);
  const cottages=scenery.filter(s=>s.name==='cottage').concat(state.decorations.filter(d=>d.catalog_id==='cottage'&&decorSlots[d.slot]).map(d=>({name:'cottage',...decorSlots[d.slot]}))); 
  const lamps=scenery.filter(s=>s.name==='lantern').concat(state.decorations.filter(d=>d.catalog_id==='lantern'&&decorSlots[d.slot]).map(d=>({name:'lantern',...decorSlots[d.slot]})));
- return <div className="garden-world" style={{'--night':cycle.night} as CSSProperties} data-light={cycle.day?'day':'night'} data-sleeping={!awake}>
- <svg ref={ref} className="garden-canvas" viewBox={`${camera.x+(aspect<.8?24:0)-width/2} ${camera.y-height/2} ${width} ${height}`} aria-label="Interactive isometric LoveGarden. Drag to explore; pinch or use buttons to zoom." onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd}>
+ return <div className="garden-world" style={{'--night':cycle.night} as CSSProperties} data-light={cycle.day?'day':'night'} data-sleeping={!awake} data-angry={state.angryMode}>
+ <svg ref={ref} className="garden-canvas" viewBox={`${camera.x+(aspect<.8?24:0)-width/2} ${camera.y-height/2} ${width} ${height}`} aria-label={state.angryMode?"Angry Mode: an empty garden under gentle rain. All memories are preserved.":"Interactive isometric LoveGarden. Drag to explore; pinch or use buttons to zoom."} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd}>
   <title>Mehezad and Labib's LoveGarden</title>
   <defs><radialGradient id="lamp-light"><stop stopColor="#ffda78" stopOpacity=".5"/><stop offset="1" stopColor="#ffd879" stopOpacity="0"/></radialGradient></defs>
+  {state.angryMode?<StormScene/>:<>
   <image href="/art/terrain.png" x="0" y="0" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>
   <g pointerEvents="none" opacity={.8-cycle.night*.5}>{[[2.3,10],[3.2,11.5],[4.4,11.5],[3,12.4]].map(([u,v],i)=>{const p=iso(u,v);return <g key={i} transform={`translate(${p.x} ${p.y})`}><path className="pond-glimmer" d="M-6 0h4m3 1h6m-2 2h3" fill="none" stroke="#d2e6ce" strokeWidth="1" style={{animationDelay:`${-i*1.3}s`}}/></g>;})}</g>
   {spots.map(p=><PixelSprite key={p.id} name="plot" x={p.x} y={p.y}/>)}
@@ -87,9 +89,10 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
   <g opacity={1-cycle.night*.75} pointerEvents="none">{[[569,160],[583,179],[555,170],[351,317],[371,320]].map(([x,y],i)=><g key={i} transform={`translate(${x} ${y})`}><path className="garden-petal" d="M0 0h3v1h-1v2H0Z" fill="#f6c6d0" style={{animationDelay:`${-i*3.3}s`}}/></g>)}</g>
   {placing&&decorSlots.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y})`} {...objectProps(`Place decoration in slot ${i+1}`,()=>onPlace(i))}><polygon points="0,-16 30,0 0,16 -30,0" className="placement-target"/><text className="slot-number" textAnchor="middle" y="4">{i+1}</text></g>)}
   <g pointerEvents="none">{effects.map((effect,i)=><g key={`${effect.id}-${i}`} transform={`translate(${effect.x} ${effect.y-20})`}><g className="world-feedback">{[-12,-5,2,9,16].map((x,n)=><rect key={x} x={x} y={-n%3*5} width="3" height={effect.kind==='water'?6:3} fill={effect.kind==='water'?'#b9f2f2':'#ffe6a0'}/>)}<text textAnchor="middle" y="-18">{effect.kind==='water'?'Watered':effect.kind==='bloom'?'In bloom!':'Discovered!'}</text></g></g>)}</g>
+ </>}
  </svg>
  <div className="camera-controls"><button aria-label="Zoom in" onClick={()=>zoom(1.2)}><Icon name="plus"/></button><button aria-label="Zoom out" onClick={()=>zoom(1/1.2)}><Icon name="minus"/></button><button aria-label="Center garden" onClick={()=>setCamera(initialCamera)}><Icon name="reset" size={19}/></button></div>
- <div className="world-caption">{placing?'Choose a numbered diamond':'Drag to explore · Pinch or + / − to zoom'}</div>
+ <div className="world-caption">{state.angryMode?'A quiet moment in the rain.':placing?'Choose a numbered diamond':'Drag to explore · Pinch or + / − to zoom'}</div>
  </div>;
 }
 

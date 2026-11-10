@@ -126,6 +126,20 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   assert.equal((await one('select count(*)::int n from public.point_transactions')).n,3);
   assert.equal((await one('select count(*)::int n from storage.objects')).n,1);
  });
+ await t.test('Angry Mode is shared, reversible and restricted to the gardener without changing garden data',async()=>{
+  await db.exec('reset role');
+  const snapshot=()=>one("select (select epoch from public.game_clock) epoch,(select count(*)::int from public.seeds) seeds,(select count(*)::int from public.flower_content) memories,(select sum(balance)::int from public.wallets) points");
+  const before=await snapshot();
+  await as(null,'anon');assert.equal((await one('select public.garden_clock() state')).state.angry_mode,false);
+  await assert.rejects(()=>db.query('select public.set_angry_mode(true)'),/permission denied/);
+  for(const user of [caretaker,stranger]){await as(user);await assert.rejects(()=>db.query('select public.set_angry_mode(true)'),/gardener/);await assert.rejects(()=>db.query('select private.set_angry_mode(true)'),/gardener/);await assert.rejects(()=>db.query('update public.game_clock set angry_mode=true'),/permission denied/);}
+  await as(gardener);await db.query('select public.set_angry_mode(true)');await db.query('select public.set_angry_mode(true)');
+  await assert.rejects(()=>db.query('select public.set_angry_mode(null)'),/Choose whether/);
+  for(const user of [caretaker,null]){await as(user,user?'authenticated':'anon');assert.equal((await one('select public.garden_clock() state')).state.angry_mode,true);}
+  await as(gardener);await db.query('select public.set_angry_mode(false)');
+  await as(null,'anon');assert.equal((await one('select public.garden_clock() state')).state.angry_mode,false);
+  await db.exec('reset role');assert.deepEqual(await snapshot(),before);
+ });
  await t.test('SQL and frontend agree on daylight at boundaries and before the epoch',async()=>{
   await db.exec('reset role');
   for(const elapsed of [-1_200_001,-900_000,-1,0,599_999,600_000,1_199_999,1_200_000,10_800_000]){
