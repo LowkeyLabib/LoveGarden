@@ -140,6 +140,18 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   await as(null,'anon');assert.equal((await one('select public.garden_clock() state')).state.angry_mode,false);
   await db.exec('reset role');assert.deepEqual(await snapshot(),before);
  });
+ await t.test('Rainbow Mode is gardener-only and atomically replaces Angry Mode without changing time or history',async()=>{
+  await db.exec('reset role');const snapshot=()=>one("select (select epoch from public.game_clock) epoch,(select count(*)::int from public.seeds) seeds,(select count(*)::int from public.flower_content) memories,(select sum(balance)::int from public.wallets) points");const before=await snapshot();
+  await as(null,'anon');await assert.rejects(()=>db.query('select public.set_rainbow_mode(true)'),/permission denied/);
+  for(const user of [caretaker,stranger]){await as(user);await assert.rejects(()=>db.query('select public.set_rainbow_mode(true)'),/gardener/);await assert.rejects(()=>db.query('select private.set_rainbow_mode(true)'),/gardener/);await assert.rejects(()=>db.query('update public.game_clock set rainbow_mode=true'),/permission denied/);}
+  await as(gardener);await db.query('select public.set_angry_mode(true)');await db.query('select public.set_rainbow_mode(true)');await db.query('select public.set_rainbow_mode(true)');
+  await assert.rejects(()=>db.query('select public.set_rainbow_mode(null)'),/Choose whether/);
+  for(const user of [caretaker,null]){await as(user,user?'authenticated':'anon');const state=(await one('select public.garden_clock() state')).state;assert.equal(state.rainbow_mode,true);assert.equal(state.angry_mode,false);}
+  await as(gardener);await db.query('select public.set_angry_mode(false)');assert.equal((await one('select public.garden_clock() state')).state.rainbow_mode,true);
+  await db.query('select public.set_angry_mode(true)');let state=(await one('select public.garden_clock() state')).state;assert.equal(state.rainbow_mode,false);assert.equal(state.angry_mode,true);
+  await db.query('select public.set_rainbow_mode(true)');await db.query('select public.set_rainbow_mode(false)');state=(await one('select public.garden_clock() state')).state;assert.equal(state.rainbow_mode,false);assert.equal(state.angry_mode,false);
+  await db.exec('reset role');await assert.rejects(()=>db.query('update public.game_clock set angry_mode=true,rainbow_mode=true'),/one_garden_mood/);assert.deepEqual(await snapshot(),before);
+ });
  await t.test('SQL and frontend agree on daylight at boundaries and before the epoch',async()=>{
   await db.exec('reset role');
   for(const elapsed of [-1_200_001,-900_000,-1,0,599_999,600_000,1_199_999,1_200_000,10_800_000]){

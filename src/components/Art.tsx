@@ -3,6 +3,7 @@ import type { CSSProperties } from 'react';
 export const flowerColors:Record<string,string>={rose:'#dc8b9e',daisy:'#edcc76',tulip:'#e5a386',lavender:'#a49bca',cosmos:'#db9db9',bluebell:'#89b4cc'};
 export function Icon({name,size=22,...rest}:{name:string;size?:number;className?:string}){
  const paths:Record<string,React.ReactNode>={
+ rainbow:<><path d="M2 19v-5a10 10 0 0 1 20 0v5M6 19v-5a6 6 0 0 1 12 0v5M10 19v-5a2 2 0 0 1 4 0v5"/></>,
  rain:<><path d="M6 14a4 4 0 1 1 1-8 5 5 0 0 1 10 1 3.5 3.5 0 1 1 1 7Z"/><path d="m7 17-1 3m6-3-1 3m6-3-1 3"/></>,
  leaf:<><path d="M19 4C9 3 3 8 5 15s13 7 14-11Z"/><path d="m5 20 9-10"/></>,
  garden:<><path d="M12 21V11m0 5c-8 0-9-5-9-5 7-2 9 5 9 5Zm0-3s1-7 8-6c0 0 1 6-8 6Z"/><path d="M12 11C4 9 7 2 12 5c6-4 9 4 0 6Z"/></>,

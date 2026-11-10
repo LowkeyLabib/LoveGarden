@@ -33,6 +33,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  const pointers=useRef(new Map<number,{x:number;y:number}>());
  const drag=useRef({x:0,y:0,startX:0,startY:0,distance:0,moved:false});
  const cycle=clockState(now,state.epoch);
+ const lighting=state.rainbowMode?0:cycle.night;
  const height=480/camera.zoom,width=height*aspect;
  const limit=(x:number,y:number,zoom:number)=>({x:Math.max(120,Math.min(565,x)),y:Math.max(105,Math.min(345,y)),zoom:Math.max(.75,Math.min(2.5,zoom))});
  const zoom=(factor:number)=>setCamera(c=>limit(c.x,c.y,c.zoom*factor));
@@ -74,19 +75,20 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  objects.sort((a,b)=>a.y-b.y||a.x-b.x);
  const cottages=scenery.filter(s=>s.name==='cottage').concat(state.decorations.filter(d=>d.catalog_id==='cottage'&&decorSlots[d.slot]).map(d=>({name:'cottage',...decorSlots[d.slot]}))); 
  const lamps=scenery.filter(s=>s.name==='lantern').concat(state.decorations.filter(d=>d.catalog_id==='lantern'&&decorSlots[d.slot]).map(d=>({name:'lantern',...decorSlots[d.slot]})));
- return <div className="garden-world" style={{'--night':cycle.night} as CSSProperties} data-light={cycle.day?'day':'night'} data-sleeping={!awake} data-angry={state.angryMode}>
+ return <div className="garden-world" style={{'--night':lighting} as CSSProperties} data-light={cycle.day?'day':'night'} data-sleeping={!awake} data-angry={state.angryMode} data-rainbow={state.rainbowMode}>
  <svg ref={ref} className="garden-canvas" viewBox={`${camera.x+(aspect<.8?24:0)-width/2} ${camera.y-height/2} ${width} ${height}`} aria-label={state.angryMode?"Angry Mode: an empty garden under gentle rain. All memories are preserved.":"Interactive isometric LoveGarden. Drag to explore; pinch or use buttons to zoom."} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd}>
   <title>Mehezad and Labib's LoveGarden</title>
   <defs><radialGradient id="lamp-light"><stop stopColor="#ffda78" stopOpacity=".5"/><stop offset="1" stopColor="#ffd879" stopOpacity="0"/></radialGradient></defs>
   {state.angryMode?<StormScene/>:<>
+  {state.rainbowMode&&<image href="/art/rainbow.png" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>}
   <image href="/art/terrain.png" x="0" y="0" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>
-  <g pointerEvents="none" opacity={.8-cycle.night*.5}>{[[2.3,10],[3.2,11.5],[4.4,11.5],[3,12.4]].map(([u,v],i)=>{const p=iso(u,v);return <g key={i} transform={`translate(${p.x} ${p.y})`}><path className="pond-glimmer" d="M-6 0h4m3 1h6m-2 2h3" fill="none" stroke="#d2e6ce" strokeWidth="1" style={{animationDelay:`${-i*1.3}s`}}/></g>;})}</g>
+  <g pointerEvents="none" opacity={.8-lighting*.5}>{[[2.3,10],[3.2,11.5],[4.4,11.5],[3,12.4]].map(([u,v],i)=>{const p=iso(u,v);return <g key={i} transform={`translate(${p.x} ${p.y})`}><path className="pond-glimmer" d="M-6 0h4m3 1h6m-2 2h3" fill="none" stroke="#d2e6ce" strokeWidth="1" style={{animationDelay:`${-i*1.3}s`}}/></g>;})}</g>
   {spots.map(p=><PixelSprite key={p.id} name="plot" x={p.x} y={p.y}/>)}
   {objects.map(o=><g key={o.key}>{o.node}</g>)}
-  <rect className="dusk-veil" x="-1000" y="-1000" width="3000" height="3000" fill="#f3bc9b" opacity={cycle.day?Math.sin(cycle.night*Math.PI)*.14:0} pointerEvents="none"/>
-  <rect className="night-veil" x="-1000" y="-1000" width="3000" height="3000" fill="#25334f" opacity={cycle.night*.46} pointerEvents="none"/>
-  <g opacity={cycle.night} pointerEvents="none">{lamps.map((p,i)=><g key={i}><circle cx={p.x+11} cy={p.y-32} r="29" fill="url(#lamp-light)"/><rect x={p.x+7} y={p.y-35} width="8" height="10" fill="#ffe6a1" className="pixel-glow"/></g>)}{cottages.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y})`}><circle cx="14" cy="-20" r="16" fill="url(#lamp-light)"/></g>)}{Array.from({length:12},(_,i)=><rect key={i} className="pixel-firefly" x={165+i*27} y={183+(i*37)%130} width="2" height="2" fill="#fff1ab" style={{animationDelay:`${-i*.7}s`}}/>)}</g>
-  <g opacity={1-cycle.night*.75} pointerEvents="none">{[[569,160],[583,179],[555,170],[351,317],[371,320]].map(([x,y],i)=><g key={i} transform={`translate(${x} ${y})`}><path className="garden-petal" d="M0 0h3v1h-1v2H0Z" fill="#f6c6d0" style={{animationDelay:`${-i*3.3}s`}}/></g>)}</g>
+  <rect className="dusk-veil" x="-1000" y="-1000" width="3000" height="3000" fill="#f3bc9b" opacity={cycle.day?Math.sin(lighting*Math.PI)*.14:0} pointerEvents="none"/>
+  <rect className="night-veil" x="-1000" y="-1000" width="3000" height="3000" fill="#25334f" opacity={lighting*.46} pointerEvents="none"/>
+  <g opacity={lighting} pointerEvents="none">{lamps.map((p,i)=><g key={i}><circle cx={p.x+11} cy={p.y-32} r="29" fill="url(#lamp-light)"/><rect x={p.x+7} y={p.y-35} width="8" height="10" fill="#ffe6a1" className="pixel-glow"/></g>)}{cottages.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y})`}><circle cx="14" cy="-20" r="16" fill="url(#lamp-light)"/></g>)}{Array.from({length:12},(_,i)=><rect key={i} className="pixel-firefly" x={165+i*27} y={183+(i*37)%130} width="2" height="2" fill="#fff1ab" style={{animationDelay:`${-i*.7}s`}}/>)}</g>
+  <g opacity={1-lighting*.75} pointerEvents="none">{[[569,160],[583,179],[555,170],[351,317],[371,320]].map(([x,y],i)=><g key={i} transform={`translate(${x} ${y})`}><path className="garden-petal" d="M0 0h3v1h-1v2H0Z" fill="#f6c6d0" style={{animationDelay:`${-i*3.3}s`}}/></g>)}</g>
   {placing&&decorSlots.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y})`} {...objectProps(`Place decoration in slot ${i+1}`,()=>onPlace(i))}><polygon points="0,-16 30,0 0,16 -30,0" className="placement-target"/><text className="slot-number" textAnchor="middle" y="4">{i+1}</text></g>)}
   <g pointerEvents="none">{effects.map((effect,i)=><g key={`${effect.id}-${i}`} transform={`translate(${effect.x} ${effect.y-20})`}><g className="world-feedback">{[-12,-5,2,9,16].map((x,n)=><rect key={x} x={x} y={-n%3*5} width="3" height={effect.kind==='water'?6:3} fill={effect.kind==='water'?'#b9f2f2':'#ffe6a0'}/>)}<text textAnchor="middle" y="-18">{effect.kind==='water'?'Watered':effect.kind==='bloom'?'In bloom!':'Discovered!'}</text></g></g>)}</g>
  </>}
