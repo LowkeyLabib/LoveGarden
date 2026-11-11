@@ -1,0 +1,1 @@
+Original LoveGarden character sprites, authored for this project. No reference photographs or third-party artwork are included. Rebuild with scripts/characters.mjs.

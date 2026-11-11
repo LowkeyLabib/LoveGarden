@@ -6,6 +6,8 @@ import {isActiveFlower,departingFlowers,FLOWER_FADE_MS} from '../lib/flowers';
 import { Icon } from './Art';
 import StormScene from './StormScene';
 import { PixelSprite } from '../garden/PixelSprite';
+import {useCharacters} from '../garden/useCharacters';
+import {CharacterSprite} from '../garden/CharacterSprite';
 import { iso, spots, hidingPlaces, decorSlots, scenery } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
 
@@ -14,6 +16,7 @@ type Effect={id:string;x:number;y:number;kind:'water'|'bloom'|'gift'};
 const initialCamera={x:344,y:214,zoom:1};
 const diamond='0,-15 29,0 0,15 -29,0';
 export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:Props){
+ const characters=useCharacters(state,now);
  const ref=useRef<SVGSVGElement>(null);
  const [aspect,setAspect]=useState(1.7);
  const visiblePlants=useRef<Seed[]|null>(null);
@@ -72,6 +75,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  for(const {seed,stage} of departures){const p=spots[seed.spot];if(p&&!state.seeds.some(s=>s.spot===seed.spot&&isActiveFlower(s,now)))objects.push({key:'departing-'+seed.id,x:p.x,y:p.y,node:<g transform={`translate(${p.x} ${p.y})`} pointerEvents="none" aria-hidden="true"><g className="flower-departure"><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{[-15,-7,1,9,17].map((x,i)=><g key={x} transform={`translate(${x} ${-17-i%3*7})`}><path className="departure-petal" d="M0 0h3v2H1v1H0Z" fill={seed.flower_type==='bluebell'?'#b8d8e3':seed.flower_type==='daisy'?'#f7dfa3':'#efbacb'} style={{animationDelay:`${i*.09}s`}}/></g>)}</g></g>});}
  for(const gift of state.gifts){const p=hidingPlaces[gift.location];if(!p||gift.claimed_at)continue;objects.push({key:gift.id,...p,node:<g transform={`translate(${p.x} ${p.y})`}><g {...objectProps(`Discover ${gift.kind} ${p.name.toLowerCase()}`,()=>onGift(gift))}><rect className="gift-focus" x="-19" y="-38" width="38" height="45" rx="2"/></g><PixelSprite name={`gift-${gift.kind}`}/><path className="bloom-spark" d="M18-32v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/></g>});}
  for(const decoration of state.decorations){const p=decorSlots[decoration.slot];if(p)objects.push({key:decoration.inventory_id,...p,node:<g data-decoration={decoration.catalog_id} data-slot={decoration.slot}><PixelSprite name={decoration.catalog_id} {...p}/></g>});}
+ for(const character of characters)objects.push({key:`character-${character.person}`,x:character.x,y:character.depth,node:<CharacterSprite character={character}/>});
  objects.sort((a,b)=>a.y-b.y||a.x-b.x);
  const cottages=scenery.filter(s=>s.name==='cottage').concat(state.decorations.filter(d=>d.catalog_id==='cottage'&&decorSlots[d.slot]).map(d=>({name:'cottage',...decorSlots[d.slot]}))); 
  const lamps=scenery.filter(s=>s.name==='lantern').concat(state.decorations.filter(d=>d.catalog_id==='lantern'&&decorSlots[d.slot]).map(d=>({name:'lantern',...decorSlots[d.slot]})));
@@ -79,7 +83,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  <svg ref={ref} className="garden-canvas" viewBox={`${camera.x+(aspect<.8?24:0)-width/2} ${camera.y-height/2} ${width} ${height}`} aria-label={state.angryMode?"Angry Mode: an empty garden under gentle rain. All memories are preserved.":"Interactive isometric LoveGarden. Drag to explore; pinch or use buttons to zoom."} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd}>
   <title>Mehezad and Labib's LoveGarden</title>
   <defs><radialGradient id="lamp-light"><stop stopColor="#ffda78" stopOpacity=".5"/><stop offset="1" stopColor="#ffd879" stopOpacity="0"/></radialGradient></defs>
-  {state.angryMode?<StormScene/>:<>
+  {state.angryMode?<StormScene>{characters.map(character=><CharacterSprite key={character.person} character={character}/>)}</StormScene>:<>
   {state.rainbowMode&&<image href="/art/rainbow.png" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>}
   <image href="/art/terrain.png" x="0" y="0" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>
   <g pointerEvents="none" opacity={.8-lighting*.5}>{[[2.3,10],[3.2,11.5],[4.4,11.5],[3,12.4]].map(([u,v],i)=>{const p=iso(u,v);return <g key={i} transform={`translate(${p.x} ${p.y})`}><path className="pond-glimmer" d="M-6 0h4m3 1h6m-2 2h3" fill="none" stroke="#d2e6ce" strokeWidth="1" style={{animationDelay:`${-i*1.3}s`}}/></g>;})}</g>

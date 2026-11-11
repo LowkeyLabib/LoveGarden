@@ -11,7 +11,7 @@ export type Scenery={name:string;x:number;y:number};
 const objects:[string,number,number][]=[
  ['oak',1,1],['pine',3,1],['willow',1,4],['pine',.4,7],['cherry',18,1],['bush',19,4],
  ['wildflowers',19,15],['bush',17,17],['oak',1,15],['pine',3,17],
- ['cottage',15,2],['sign',8,2],['bench',7,2],['lantern',5,4],['lantern',17,12],['lantern',5,15],
+ ['cottage',15,2],['sign',8,2],['bench',8,14.5],['lantern',5,4],['lantern',17,12],['lantern',5,15],
  ['bush',3,3],['hydrangea',16,16],['hydrangea',18,15],['bush',2,16],['bush',19,9],['hydrangea',13,1],
  ['reeds',1,10],['reeds',4,13],['reeds',1,12],['rock',4,8],['koi',3,10.5],['rock',1,13],['rock',19,12],
  ['wildflowers',4,4],['wildflowers',4,15],['wildflowers',15,16],['wildflowers',18,5],['wildflowers',9,1],
