@@ -6,4 +6,4 @@ export type Catalog = {id:string; name:string; description:string; price:number}
 export type Inventory = {id:string; catalog_id:string; purchased_at:string};
 export type Decoration = {inventory_id:string; catalog_id:string; slot:number};
 export type Transaction = {id:string; amount:number; reason:string; created_at:string};
-export type GardenState = {seeds:Seed[]; gifts:Gift[]; decorations:Decoration[]; catalog:Catalog[]; inventory:Inventory[]; transactions:Transaction[]; balance:number; role:Role; epoch:number; serverTime:number; angryMode:boolean; rainbowMode:boolean};
+export type GardenState = {seeds:Seed[]; gifts:Gift[]; decorations:Decoration[]; catalog:Catalog[]; inventory:Inventory[]; transactions:Transaction[]; balance:number; role:Role; epoch:number; serverTime:number; angryMode:boolean; rainbowMode:boolean; noDataMode:boolean};

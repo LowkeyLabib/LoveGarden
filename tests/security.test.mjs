@@ -152,6 +152,37 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   await db.query('select public.set_rainbow_mode(true)');await db.query('select public.set_rainbow_mode(false)');state=(await one('select public.garden_clock() state')).state;assert.equal(state.rainbow_mode,false);assert.equal(state.angry_mode,false);
   await db.exec('reset role');await assert.rejects(()=>db.query('update public.game_clock set angry_mode=true,rainbow_mode=true'),/one_garden_mood/);assert.deepEqual(await snapshot(),before);
  });
+ await t.test('NoData Mode is gardener-only, shared and preserves all saved records and the previous mood',async()=>{
+  const snapshot=async()=>{
+   await db.exec('reset role');
+   const records={};
+   for(const table of ['seeds','flower_content','gifts','gift_content','wallets','point_transactions','inventory','decorations'])records[table]=(await db.query(`select to_jsonb(t) row from public.${table} t order by to_jsonb(t)::text`)).rows;
+   records.clock=await one('select epoch,angry_mode,rainbow_mode from public.game_clock');
+   return records;
+  };
+  await as(null,'anon');assert.equal((await one('select public.garden_clock() state')).state.no_data_mode,false);
+  await assert.rejects(()=>db.query('select public.set_no_data_mode(true)'),/permission denied/);
+  for(const user of [caretaker,stranger]){
+   await as(user);
+   for(const enabled of [true,false]){
+    await assert.rejects(()=>db.query('select public.set_no_data_mode($1)',[enabled]),/gardener/);
+    await assert.rejects(()=>db.query('select private.set_no_data_mode($1)',[enabled]),/gardener/);
+   }
+   await assert.rejects(()=>db.query('update public.game_clock set no_data_mode=true'),/permission denied/);
+  }
+  for(const mood of ['angry','rainbow']){
+   await as(gardener);await db.query(`select public.set_${mood}_mode(true)`);
+   const before=await snapshot();
+   await as(gardener);await db.query('select public.set_no_data_mode(true)');await db.query('select public.set_no_data_mode(true)');
+   await assert.rejects(()=>db.query('select public.set_no_data_mode(null)'),/Choose whether/);
+   for(const user of [gardener,caretaker,null]){await as(user,user?'authenticated':'anon');assert.equal((await one('select public.garden_clock() state')).state.no_data_mode,true);}
+   assert.deepEqual(await snapshot(),before);
+   await as(gardener);await db.query('select public.set_no_data_mode(false)');
+   await as(null,'anon');assert.equal((await one('select public.garden_clock() state')).state.no_data_mode,false);
+   assert.deepEqual(await snapshot(),before);
+   await as(gardener);await db.query(`select public.set_${mood}_mode(false)`);
+  }
+ });
  await t.test('SQL and frontend agree on daylight at boundaries and before the epoch',async()=>{
   await db.exec('reset role');
   for(const elapsed of [-1_200_001,-900_000,-1,0,599_999,600_000,1_199_999,1_200_000,10_800_000]){

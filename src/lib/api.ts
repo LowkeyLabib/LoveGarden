@@ -7,7 +7,7 @@ export const supabase = url && key && !url.includes('YOUR_PROJECT') ? createClie
 export const catalog = [
  ['lantern','Fairy lantern','A little golden light for moonlit evenings.',75],['bench','Garden bench','A quiet place to sit together, always.',100],['butterfly','Butterfly haven','A gathering place for fluttering friends.',150],['arch','Flower arch','A doorway wrapped in climbing roses.',200],['fountain','Little fountain','A soft ripple, a wish, a moment of peace.',250],['cottage','Tiny cottage','A storybook home for your sweetest dreams.',500],['birdhouse','Songbird house','A home for the morning chorus.',125],['heart','Heart ornament','A small reminder of a very big love.',80],['tree','Wishing tree','Tie a little hope to every branch.',300],['seasonal','Harvest pumpkins','Warm autumn colors for your world.',90],
 ].map(([id,name,description,price])=>({id:String(id),name:String(name),description:String(description),price:Number(price)}));
-export const emptyGarden:GardenState = {seeds:[],gifts:[],decorations:[],catalog,inventory:[],transactions:[],balance:0,role:'GUEST',epoch:EPOCH,serverTime:Date.now(),angryMode:false,rainbowMode:false};
+export const emptyGarden:GardenState = {seeds:[],gifts:[],decorations:[],catalog,inventory:[],transactions:[],balance:0,role:'GUEST',epoch:EPOCH,serverTime:Date.now(),angryMode:false,rainbowMode:false,noDataMode:false};
 async function rows(table:string) {
  const result:unknown[]=[];
  for(let offset=0;;offset+=1000){
@@ -32,7 +32,7 @@ export async function loadGarden():Promise<GardenState>{
   if(w.error) throw w.error;
   inventory=i;transactions=t;balance=w.data?.balance??0;
  }
- return {seeds,gifts,decorations,catalog:store,inventory,transactions,balance,role,angryMode:clock.data.angry_mode===true,rainbowMode:clock.data.rainbow_mode===true,epoch:Date.parse(clock.data.epoch),serverTime:Date.parse(clock.data.server_time)} as GardenState;
+ return {seeds,gifts,decorations,catalog:store,inventory,transactions,balance,role,angryMode:clock.data.angry_mode===true,rainbowMode:clock.data.rainbow_mode===true,noDataMode:clock.data.no_data_mode===true,epoch:Date.parse(clock.data.epoch),serverTime:Date.parse(clock.data.server_time)} as GardenState;
 }
 export async function rpc(name:string,args:Record<string,unknown>){
  if(!navigator.onLine) throw new Error('Reconnect to the internet to tend the garden.');
