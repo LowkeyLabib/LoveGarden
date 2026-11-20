@@ -1,12 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
-import type { GardenState, Content } from './types';
+import type { GardenState, Content, Catalog, FashionCatalogItem, FashionVariant, FashionOwnership, EquippedFashion, FashionState, FashionPurchaseResult, FashionEquipResult } from './types';
 import { EPOCH } from './clock.mjs';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const supabase = url && key && !url.includes('YOUR_PROJECT') ? createClient(url,key) : null;
-export const catalog = [
+export const catalog:Catalog[] = [
  ['lantern','Fairy lantern','A little golden light for moonlit evenings.',75],['bench','Garden bench','A quiet place to sit together, always.',100],['butterfly','Butterfly haven','A gathering place for fluttering friends.',150],['arch','Flower arch','A doorway wrapped in climbing roses.',200],['fountain','Little fountain','A soft ripple, a wish, a moment of peace.',250],['cottage','Tiny cottage','A storybook home for your sweetest dreams.',500],['birdhouse','Songbird house','A home for the morning chorus.',125],['heart','Heart ornament','A small reminder of a very big love.',80],['tree','Wishing tree','Tie a little hope to every branch.',300],['seasonal','Harvest pumpkins','Warm autumn colors for your world.',90],
-].map(([id,name,description,price])=>({id:String(id),name:String(name),description:String(description),price:Number(price)}));
+].map(([id,name,description,price])=>({id:String(id),name:String(name),description:String(description),price:Number(price),category:'DECORATION'}));
 export const emptyGarden:GardenState = {seeds:[],gifts:[],decorations:[],catalog,inventory:[],transactions:[],balance:0,role:'GUEST',epoch:EPOCH,serverTime:Date.now(),angryMode:false,rainbowMode:false,noDataMode:false};
 async function rows(table:string) {
  const result:unknown[]=[];
@@ -32,7 +32,8 @@ export async function loadGarden():Promise<GardenState>{
   if(w.error) throw w.error;
   inventory=i;transactions=t;balance=w.data?.balance??0;
  }
- return {seeds,gifts,decorations,catalog:store,inventory,transactions,balance,role,angryMode:clock.data.angry_mode===true,rainbowMode:clock.data.rainbow_mode===true,noDataMode:clock.data.no_data_mode===true,epoch:Date.parse(clock.data.epoch),serverTime:Date.parse(clock.data.server_time)} as GardenState;
+ const decorationsCatalog=(store as Catalog[]).filter(item=>item.category!=='FASHION');
+ return {seeds,gifts,decorations,catalog:decorationsCatalog,inventory,transactions,balance,role,angryMode:clock.data.angry_mode===true,rainbowMode:clock.data.rainbow_mode===true,noDataMode:clock.data.no_data_mode===true,epoch:Date.parse(clock.data.epoch),serverTime:Date.parse(clock.data.server_time)} as GardenState;
 }
 export async function rpc(name:string,args:Record<string,unknown>){
  if(!navigator.onLine) throw new Error('Reconnect to the internet to tend the garden.');
@@ -40,6 +41,25 @@ export async function rpc(name:string,args:Record<string,unknown>){
  const {data,error}=await supabase.rpc(name,args);
  if(error) throw error;
  return data;
+}
+export async function loadFashion():Promise<FashionState>{
+ if(!supabase) return {catalog:[],variants:[],ownership:[],equipped:[]};
+ const [store,details,variants,ownership,equipped]=await Promise.all([
+  rows('store_catalog'),rows('fashion_catalog'),rows('fashion_variants'),rows('fashion_ownership'),rows('character_wardrobe')
+ ]);
+ type FashionDetails=Omit<FashionCatalogItem,keyof Catalog>;
+ const detailById=new Map((details as (FashionDetails&{catalog_id:string})[]).map(item=>[item.catalog_id,item]));
+ const fashionCatalog=(store as Catalog[]).filter(item=>item.category==='FASHION').flatMap(item=>{
+  const detail=detailById.get(item.id);
+  return detail?[{...item,...detail}]:[];
+ });
+ return {catalog:fashionCatalog,variants:variants as FashionVariant[],ownership:ownership as FashionOwnership[],equipped:equipped as EquippedFashion[]};
+}
+export async function purchaseFashion(catalogId:string,requestId:string):Promise<FashionPurchaseResult>{
+ return await rpc('purchase_fashion',{p_catalog:catalogId,p_request:requestId}) as FashionPurchaseResult;
+}
+export async function equipFashion(catalogId:string):Promise<FashionEquipResult>{
+ return await rpc('equip_fashion',{p_catalog:catalogId}) as FashionEquipResult;
 }
 export function spotifyTrack(input:string){
  if(!input.trim()) return null;
