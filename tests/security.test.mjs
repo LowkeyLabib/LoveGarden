@@ -129,7 +129,16 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
  await t.test('fashion purchases and wardrobes preserve the shared economy and enforce each owner',async()=>{
   const soloRequest=crypto.randomUUID(),duplicateRequest=crypto.randomUUID(),matchRequest=crypto.randomUUID();
   await as(null,'anon');
-  assert.equal((await one("select count(*)::int n from public.store_catalog where category='FASHION'")).n,8);
+  assert.equal((await one("select count(*)::int n from public.fashion_catalog where collection='classic'")).n,8);
+  const desi = (await db.query(`
+   select f.ownership_target, count(distinct f.catalog_id)::int as items, count(v.sprite_ref)::int as variants
+   from public.fashion_catalog f join public.fashion_variants v using (catalog_id)
+   where f.collection='desi' group by f.ownership_target order by f.ownership_target
+  `)).rows;
+  assert.deepEqual(desi,[{ownership_target:'BOTH',items:7,variants:14},{ownership_target:'MEHEZAD',items:8,variants:8}]);
+  const manifest=JSON.parse(await readFile('src/garden/fashion.json','utf8'));
+  const desiRefs=(await db.query("select sprite_ref from public.fashion_variants where catalog_id like 'desi-%'")).rows;
+  assert.deepEqual(desiRefs.map(row=>row.sprite_ref).sort(),manifest.styles.filter(ref=>ref.includes('/desi-')).sort());
   assert.equal((await one('select count(*)::int n from public.character_wardrobe')).n,2);
   assert.equal((await one('select count(*)::int n from public.fashion_ownership')).n,0);
   await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['pink-summer-dress',soloRequest]),/permission denied/);
@@ -179,8 +188,15 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   assert.equal((await one('select balance from public.wallets where user_id=$1',[caretaker])).balance,100);
   assert.equal((await one("select count(*)::int n from public.fashion_ownership where catalog_id='romantic-formal-set'")).n,0);
   assert.equal((await one("select count(*)::int n from public.point_transactions where reason='fashion_purchase'")).n,2);
-  const tiers=await one("select max(s.price) filter(where f.ownership_target='MEHEZAD')::int solo_max,min(s.price) filter(where f.ownership_target='BOTH')::int matching_min from public.store_catalog s join public.fashion_catalog f on f.catalog_id=s.id");
+  const tiers=await one("select max(s.price) filter(where f.ownership_target='MEHEZAD')::int solo_max,min(s.price) filter(where f.ownership_target='BOTH')::int matching_min from public.store_catalog s join public.fashion_catalog f on f.catalog_id=s.id where f.collection='classic'");
   assert.ok(tiers.matching_min>tiers.solo_max);
+  const desiPrices=await one(`
+   select array_agg(s.price order by s.price) filter(where f.ownership_target='MEHEZAD') as solo,
+          array_agg(s.price order by s.price) filter(where f.ownership_target='BOTH') as matching
+   from public.store_catalog s join public.fashion_catalog f on f.catalog_id=s.id
+   where f.collection='desi'
+  `);
+  assert.deepEqual(desiPrices,{solo:[90,110,120,160,180,200,250,300],matching:[250,300,350,400,450,550,750]});
  });
  await t.test('Angry Mode is shared, reversible and restricted to the gardener without changing garden data',async()=>{
   await db.exec('reset role');

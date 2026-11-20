@@ -72,12 +72,41 @@ const fashionStyles=[
  {ref:'fashion/labib/romantic-formal-set',person:'labib',kind:'formal',main:'#303c5b',light:'#5d6b8c',shade:'#1c253c',detail:'#d48391'},
  {ref:'fashion/mehezad/romantic-formal-set',person:'mehezad',kind:'formal-dress',main:'#8f425d',light:'#c56e85',shade:'#5f2944',detail:'#e7bd82'},
 ];
+const desiStyles=[
+ ['desi-floral-kurti','mehezad','kurti','#d87b95','#f3adb7','#97445f','#fff0b8','floral'],
+ ['desi-cotton-kameez','mehezad','kameez','#5b9892','#8fbfb2','#376862','#f5deab','plain'],
+ ['desi-pastel-salwar-kameez','mehezad','kameez','#b393c3','#d9c1e5','#795d8c','#cae5c7','drape'],
+ ['desi-anarkali-dress','mehezad','anarkali','#9260ad','#c389ca','#5f3e7d','#f4ca84','drape'],
+ ['desi-lal-par-sharee','mehezad','sharee','#eee4cc','#fff5dc','#b83249','#d84555','plain'],
+ ['desi-black-sharee','mehezad','sharee','#35313b','#555061','#211c26','#e3b572','plain'],
+ ['desi-jamdani-sharee','mehezad','sharee','#6cae9d','#ade0c4','#477d72','#fff3cd','motifs'],
+ ['desi-festive-lehenga','mehezad','lehenga','#d88a45','#ffc478','#985233','#f5a3b7','motifs'],
+ ['desi-casual-kurti-panjabi','mehezad','kurti','#aaa66e','#d5cb90','#666745','#f4d0ad','floral'],
+ ['desi-casual-kurti-panjabi','labib','panjabi','#83875e','#b1b486','#505538','#f4d0ad','plain'],
+ ['desi-pastel-kameez-panjabi','mehezad','kameez','#8db9a8','#bbe0cb','#597c75','#d6bce5','drape'],
+ ['desi-pastel-kameez-panjabi','labib','panjabi','#ac91bd','#d6bce5','#70577e','#bbe0cb','plain'],
+ ['desi-lal-par-sharee-white-panjabi','mehezad','sharee','#fff0d8','#fff9e9','#a72d44','#bb2d48','plain'],
+ ['desi-lal-par-sharee-white-panjabi','labib','panjabi','#eee8d8','#fff8e8','#b9aa99','#b92e47','plain'],
+ ['desi-black-sharee-black-panjabi','mehezad','sharee','#342e3e','#565061','#211a29','#d69569','plain'],
+ ['desi-black-sharee-black-panjabi','labib','panjabi','#28272e','#474653','#16151e','#d69569','plain'],
+ ['desi-eid-special-matching-set','mehezad','anarkali','#3b917e','#72c3a3','#215f55','#f7cc74','motifs'],
+ ['desi-eid-special-matching-set','labib','panjabi','#306e60','#61ab91','#244c48','#f7cc74','motifs'],
+ ['desi-jamdani-sharee-premium-panjabi','mehezad','sharee','#5a83a9','#a4c7dc','#395474','#fff0ca','motifs'],
+ ['desi-jamdani-sharee-premium-panjabi','labib','panjabi','#405c85','#718fb4','#263957','#fff0ca','motifs'],
+ ['desi-wedding-inspired-couple-set','mehezad','lehenga','#b54159','#eb7985','#76273e','#f7cd78','motifs'],
+ ['desi-wedding-inspired-couple-set','labib','panjabi','#e3cba4','#fff0ca','#a88860','#b54355','motifs'],
+].map(([id,person,kind,main,light,shade,detail,pattern])=>({
+ ref:`fashion/${person}/${id}`,person,kind,main,light,shade,detail,pattern,
+}));
+fashionStyles.push(...desiStyles);
+
 function drawFashion(style,pose,frame,back){
  const c=new Canvas(),girl=style.person==='mehezad',walk=pose==='walk',sit=pose==='sit'||pose==='smoke',plant=pose==='plant';
  const step=walk?[0,2,0,-2][frame]:0,bob=walk&&frame%2?1:0,bend=plant?[3,5,7,4][frame]:0;
  const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend;
  const trousers=style.kind==='pajamas'?style.main:style.kind==='hoodie'?(girl?'#596882':'#333e48'):style.kind==='formal'?'#222b43':style.shade;
  const dress=style.kind==='dress'||style.kind==='formal-dress';
+ const desi=Boolean(style.pattern);
  if(dress){
   const end=sit?45:47;
   for(let y=top+7;y<=end;y++){
@@ -92,6 +121,20 @@ function drawFashion(style,pose,frame,back){
  }else{
   c.rect(19,hip,5,8+Math.max(0,step),trousers);c.rect(25,hip,5,8-Math.min(0,step),trousers);
   c.rect(20,hip+1,1,6,style.light);c.rect(28,hip+1,1,6,style.shade);
+ }
+ if(desi){
+  const skirt=['sharee','anarkali','lehenga'].includes(style.kind);
+  const hem=sit?44:skirt?47:style.kind==='kurti'?42:44;
+  for(let y=top+6;y<=hem;y++){
+   const spread=skirt?Math.min(9,5+Math.floor((y-top-6)/2)):6;
+   c.rect(24-spread,y,spread*2+1,1,y===hem?style.detail:style.main);
+   if(y===hem)continue;
+   c.dot(24-spread,y,style.light);c.dot(24+spread,y,style.shade);
+   if(skirt&&y%2===0)c.dot(22+Math.floor((y-top)/5),y,style.shade);
+   if(style.pattern==='motifs'&&y%3===0){
+    for(let x=20;x<=28;x+=4)c.dot(x+(y%2),y,style.detail);
+   }
+  }
  }
  const wide=style.kind==='hoodie';
  c.rect(wide?17:18,top,wide?15:13,Math.max(5,(sit?41:40)-top),colors.outline);
@@ -116,9 +159,30 @@ function drawFashion(style,pose,frame,back){
  if(plant)c.line(29,top+3,35,43+frame%2,style.main,3);
  if(pose==='water')c.line(29,top+4,33,top+7,style.main,3);
  if(pose==='smoke'){const raised=frame===1||frame===2;c.line(29,top+4,raised?30:33,raised?top-2:top+8,style.main,3);}
+ if(desi){
+  if(style.kind==='sharee'){
+   const shoulder=back?19:28,waist=back?27:19;
+   c.line(shoulder,top,waist,top+10,style.detail,3);
+   c.line(shoulder+1,top+1,waist+1,top+10,style.light);
+   c.line(waist,top+10,waist-2,sit?43:46,style.detail);
+  }else if(style.pattern==='drape'||style.kind==='lehenga'||style.kind==='anarkali'){
+   c.line(back?19:28,top,back?23:26,top+9,style.detail,3);
+   c.line(back?22:27,top+7,back?19:30,sit?42:44,style.detail,2);
+   if(style.kind==='lehenga')c.rect(18,top+7,12,1,style.light);
+  }else if(!back){
+   c.rect(22,top,5,2,style.detail);
+   c.line(24,top+2,24,top+8,style.shade);
+   for(let y=top+3;y<=top+8;y+=2)c.dot(25,y,style.detail);
+   if(style.pattern==='floral'){
+    for(const [x,y] of [[21,top+4],[28,top+7]]){
+     c.dot(x-1,y,style.detail);c.dot(x+1,y,style.detail);c.dot(x,y+1,style.light);
+    }
+   }
+  }
+ }
  return c.data;
 }
-const fashionColumns=16,fashionAtlas=Buffer.alloc(fashionColumns*W*Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H*4);let fashionIndex=0;
+const fashionColumns=48,fashionAtlas=Buffer.alloc(fashionColumns*W*Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H*4);let fashionIndex=0;
 for(const style of fashionStyles)for(const pose of poses)for(const direction of directions)for(let frame=0;frame<4;frame++){
  const pixels=drawFashion(style,pose,frame,direction[0]==='n'),mirror=direction[1]==='w',left=fashionIndex%fashionColumns*W,top=Math.floor(fashionIndex/fashionColumns)*H;
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const source=(y*W+(mirror?W-1-x:x))*4,target=((top+y)*fashionColumns*W+left+x)*4;pixels.copy(fashionAtlas,target,source,source+4);}
