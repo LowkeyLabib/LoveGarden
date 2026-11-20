@@ -15,6 +15,7 @@ export { spots, hidingPlaces, decorSlots } from '../garden/world';
 type Props={state:GardenState;now:number;onSpot:(n:number)=>void;onSeed:(s:Seed)=>void;onGift:(g:Gift)=>void;onPlace:(slot:number)=>void;placing:string|null};
 type Effect={id:string;x:number;y:number;kind:'water'|'bloom'|'gift'};
 const diamond='0,-15 29,0 0,15 -29,0';
+const cameraHintKey='lovegarden.camera-hint-dismissed';
 export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:Props){
  const characters=useCharacters(state,now);
  const wardrobes=useMemo(()=>{
@@ -30,8 +31,14 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  },[state.fashion]);
  const ref=useRef<SVGSVGElement>(null);
  const camera=useRef<ReturnType<typeof connectGardenCamera>>(null);
+ const [showCameraHint,setShowCameraHint]=useState(()=>{
+  try{return localStorage.getItem(cameraHintKey)!=='1';}catch{return true;}
+ });
  useLayoutEffect(()=>{
-  const controls=connectGardenCamera(ref.current!);
+  const controls=connectGardenCamera(ref.current!,()=>{
+   setShowCameraHint(false);
+   try{localStorage.setItem(cameraHintKey,'1');}catch{/* Storage may be unavailable. */}
+  });
   camera.current=controls;
   return ()=>{controls.dispose();camera.current=null;};
  },[]);
@@ -93,8 +100,9 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
   <g pointerEvents="none">{effects.map((effect,i)=><g key={`${effect.id}-${i}`} transform={`translate(${effect.x} ${effect.y-20})`}><g className="world-feedback">{[-12,-5,2,9,16].map((x,n)=><rect key={x} x={x} y={-n%3*5} width="3" height={effect.kind==='water'?6:3} fill={effect.kind==='water'?'#b9f2f2':'#ffe6a0'}/>)}<text textAnchor="middle" y="-18">{effect.kind==='water'?'Watered':effect.kind==='bloom'?'In bloom!':'Discovered!'}</text></g></g>)}</g>
  </>}
  </svg>
- <div className="camera-controls"><button aria-label="Zoom in" onClick={()=>camera.current?.zoom(1.2)}><Icon name="plus"/></button><button aria-label="Zoom out" onClick={()=>camera.current?.zoom(1/1.2)}><Icon name="minus"/></button><button aria-label="Center garden" onClick={()=>camera.current?.reset()}><Icon name="reset" size={19}/></button></div>
- <div className="world-caption">{state.angryMode?'A quiet moment in the rain.':placing?'Choose a numbered diamond':'Drag to explore · Pinch, scroll or + / − to zoom'}</div>
+ <div className="camera-controls"><button aria-label="Zoom in" onClick={()=>camera.current?.zoom(1.2)}><Icon name="plus"/></button><button aria-label="Zoom out" onClick={()=>camera.current?.zoom(1/1.2)}><Icon name="minus"/></button><button className="camera-reset" onClick={()=>camera.current?.reset()}><Icon name="reset" size={17}/><span>Reset View</span></button></div>
+ {showCameraHint&&!state.angryMode&&!placing&&<div className="camera-hint"><span>Drag to explore • Scroll to zoom</span><span>Drag to explore • Pinch to zoom</span></div>}
+ {(state.angryMode||placing)&&<div className="world-caption">{state.angryMode?'A quiet moment in the rain.':'Choose a numbered diamond'}</div>}
  </div>;
 }
 

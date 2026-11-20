@@ -73,7 +73,8 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
   }
  });
  const surface = new Surface();
- controls = connectGardenCamera(surface);
+ let interactions = 0;
+ controls = connectGardenCamera(surface, () => interactions++);
  const send = (type, values) => {
   const event = Object.assign(new Event(type, { cancelable: true }), values);
   return surface.dispatchEvent(event);
@@ -91,6 +92,7 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  pointer('move', 185, 303);
  pointer('up', 185, 303);
  assert.equal(click(), true);
+ assert.equal(interactions, 0);
  assert.equal(frames.size, 0);
  pointer('down', 180, 300);
  pointer('move', 200, 310);
@@ -100,6 +102,7 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  assert.equal(send('click', { detail: 0 }), true);
  assert.equal(frames.size, 1);
  flush();
+ assert.equal(interactions, 1);
  assert.ok(Math.abs(surface.viewBox[0] - (initial[0] - 40 * 480 / portrait.height)) < 1e-9);
  assert.ok(surface.viewBox[1] < initial[1]);
 
@@ -125,6 +128,10 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  assert.equal(send('wheel', { clientX: cursor.x + 12, clientY: cursor.y + 30, deltaY: -100, deltaMode: 0 }), false);
  flush();
  assert.ok(atCursor(surface.viewBox).every((value, index) => Math.abs(value - before[index]) < 1e-9));
+ assert.equal(interactions, 1);
+ controls.reset();
+ flush();
+ assert.deepEqual(surface.viewBox, initial);
  surface.bounds = { ...surface.bounds, width: 650, height: 390 };
  resize();
  assert.ok(Math.abs(surface.viewBox[2] / surface.viewBox[3] - 650 / 390) < 1e-9);

@@ -38,9 +38,12 @@ export function moveCamera(camera: Camera, viewport: Size, from: Point, to: Poin
  }, viewport);
 }
 
-export function connectGardenCamera(svg: SVGSVGElement) {
+export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => void) {
  let viewport: Size = { width: 1, height: 1 };
  let camera = initialCamera;
+ let paintedCamera = camera;
+ let resetTarget: Camera | undefined;
+ let notifyInteraction = onInteraction;
  let frame = 0;
  let lastFrame = 0;
  let wheelZoom: { zoom: number; anchor: Point } | undefined;
@@ -57,6 +60,7 @@ export function connectGardenCamera(svg: SVGSVGElement) {
   const width = viewport.width * scale;
   const height = viewport.height * scale;
   svg.setAttribute('viewBox', `${camera.x - width / 2} ${camera.y - height / 2} ${width} ${height}`);
+  paintedCamera = camera;
  };
 
  function schedule() {
@@ -67,6 +71,22 @@ export function connectGardenCamera(svg: SVGSVGElement) {
   const elapsed = lastFrame ? clamp(time - lastFrame, 0, 32) : 16;
   lastFrame = time;
   frame = 0;
+  if (resetTarget) {
+   const dx = resetTarget.x - camera.x;
+   const dy = resetTarget.y - camera.y;
+   const dz = resetTarget.zoom - camera.zoom;
+   if (reducedMotion.matches || (Math.hypot(dx, dy) < 0.2 && Math.abs(dz) < 0.002)) {
+    camera = resetTarget;
+    resetTarget = undefined;
+   } else {
+    const progress = 1 - Math.exp(-elapsed / 48);
+    camera = constrainCamera({
+     x: camera.x + dx * progress,
+     y: camera.y + dy * progress,
+     zoom: camera.zoom + dz * progress,
+    }, viewport);
+   }
+  }
   if (wheelZoom) {
    const remaining = wheelZoom.zoom - camera.zoom;
    const done = reducedMotion.matches || Math.abs(remaining) < 0.002;
@@ -89,12 +109,18 @@ export function connectGardenCamera(svg: SVGSVGElement) {
    };
    coasting = Math.hypot(velocity.x, velocity.y) > 0.03;
   }
+  const changed = camera.x !== paintedCamera.x || camera.y !== paintedCamera.y || camera.zoom !== paintedCamera.zoom;
   paint();
-  if (wheelZoom || coasting) schedule();
+  if (changed && notifyInteraction) {
+   notifyInteraction();
+   notifyInteraction = undefined;
+  }
+  if (wheelZoom || coasting || resetTarget) schedule();
   else lastFrame = 0;
  }
 
  function stopMotion() {
+  resetTarget = undefined;
   wheelZoom = undefined;
   coasting = false;
   velocity = { x: 0, y: 0 };
@@ -191,6 +217,7 @@ export function connectGardenCamera(svg: SVGSVGElement) {
  }
 
  function zoomBy(factor: number, anchor: Point) {
+  resetTarget = undefined;
   coasting = false;
   wheelZoom = { zoom: clampZoom((wheelZoom?.zoom ?? camera.zoom) * factor), anchor };
   schedule();
@@ -225,7 +252,7 @@ export function connectGardenCamera(svg: SVGSVGElement) {
   zoom: (factor: number) => zoomBy(factor, { x: viewport.width / 2, y: viewport.height / 2 }),
   reset: () => {
    cancelGesture();
-   camera = constrainCamera(initialCamera, viewport);
+   resetTarget = constrainCamera(initialCamera, viewport);
    schedule();
   },
   dispose: () => {
