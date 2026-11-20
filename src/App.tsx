@@ -10,7 +10,7 @@ import { Compose, Login, Empty, giftNames, date, errorMessage, titleCase } from 
 import { supabase, emptyGarden, loadGarden, rpc, openMemory, signedPhoto } from './lib/api';
 import { growth, clockState } from './lib/clock.mjs';
 import {isActiveFlower,isCollectedFlower,flowerExpiresAt} from './lib/flowers';
-import type { Content, GardenState, Seed } from './lib/types';
+import type { Content, FashionEquipResult, GardenState, Seed } from './lib/types';
 type Panel = 'store'|'collection'|'login'|'activity'|'help'|'audio'|null;
 type Memory = {id:string;kind:'flower'|'gift';name:string;created:string;watered?:string|null;opened?:string|null;content?:Content;awarded?:number;error?:string};
 type InstallPrompt = Event & {prompt:()=>Promise<void>;userChoice:Promise<{outcome:string}>};
@@ -33,6 +33,17 @@ export default function App(){
   catch(e){if(mounted.current&&request===generation.current)setLoadError(errorMessage(e));}
   finally{if(mounted.current&&request===generation.current)setLoading(false);}
  },[]);
+ function updateWardrobe(equipped?:FashionEquipResult){
+  if(equipped){
+   const {sprite_ref,...outfit}=equipped;
+   const equipped_at=new Date().toISOString();
+   setState(current=>({...current,fashion:{
+    variants:[...current.fashion.variants.filter(v=>v.character!==outfit.character||v.slot!==outfit.slot||v.catalog_id!==outfit.catalog_id),equipped],
+    equipped:[...current.fashion.equipped.filter(v=>v.character!==outfit.character||v.slot!==outfit.slot),{...outfit,equipped_at}],
+   }}));
+  }
+  return refresh();
+ }
  useEffect(()=>{
   mounted.current=true;void refresh();
   const timer=window.setInterval(()=>{if(document.visibilityState==='visible')setNow(serverAnchor.current.server+performance.now()-serverAnchor.current.local);},1000);
@@ -108,7 +119,7 @@ export default function App(){
  {panel==='collection'&&<Modal wide title="Our little book of memories" subtitle="Every bloom, every surprise, every little piece of us." onClose={()=>setPanel(null)}><div className="collection-tabs"><button className={collectionTab==='memories'?'selected':''} onClick={()=>setCollectionTab('memories')}>Memories <span>{blooms.length+claimed.length}</span></button><button className={collectionTab==='milestones'?'selected':''} onClick={()=>setCollectionTab('milestones')}>Milestones</button><button className={collectionTab==='wardrobe'?'selected':''} onClick={()=>setCollectionTab('wardrobe')}>Wardrobe</button>{state.role==='CARETAKER'&&<><button className={collectionTab==='decorations'?'selected':''} onClick={()=>setCollectionTab('decorations')}>Decorations</button><button className={collectionTab==='points'?'selected':''} onClick={()=>setCollectionTab('points')}>LovePoints</button></>}</div>
  {collectionTab==='memories'&&<>{!blooms.length&&!claimed.length?<Empty icon="book" title="The first page is still waiting" text="Bloomed flowers and discovered surprises will find a forever home here."/>:<div className="memory-grid">{blooms.map(s=><button className="collection-card" key={s.id} onClick={()=>void reveal(s.id,'flower',`${titleCase(s.flower_type)} memory`,s.planted_at,s.watered_at,s.opened_at)}><svg viewBox="-60 -110 120 140" aria-hidden="true"><Flower type={s.flower_type}/></svg><h3>{titleCase(s.flower_type)}, with love</h3><span>{date(s.planted_at)}</span><small>{member?'Open this memory':'A private memory'}</small></button>)}{claimed.map(g=><button className="collection-card" key={g.id} onClick={()=>void reveal(g.id,'gift',giftNames[g.kind],g.created_at,null,g.claimed_at)}><ItemPicture kind={g.kind} gift/><h3>{giftNames[g.kind]}</h3><span>{date(g.claimed_at!)}</span><small>{member?'Unwrap this memory':'A private surprise'}</small></button>)}</div>}{!member&&<p className="privacy-note"><Icon name="lock" size={15}/>The flowers are for everyone to admire. The memories belong to the two of them.</p>}</>}
  {collectionTab==='milestones'&&<div className="milestones">{[['The first little seed',state.seeds.length?date([...state.seeds].sort((a,b)=>a.planted_at.localeCompare(b.planted_at))[0].planted_at):'A new beginning, waiting to happen'],['A garden in bloom',`${blooms.length} ${blooms.length===1?'flower has':'flowers have'} opened to the sunshine`],['Hidden happiness',`${claimed.length} little surprises discovered`],['Made our own',`${state.decorations.length} decorations placed with care`]].map(([name,detail])=><div key={name}><Icon name="garden"/><span><h3>{name}</h3><p>{detail}</p></span></div>)}</div>}
- {collectionTab==='wardrobe'&&<FashionBoutique mode="wardrobe" role={state.role} balance={state.balance} fashion={state.fashion} online={online} onChanged={refresh} onNotify={setToast}/>}
+ {collectionTab==='wardrobe'&&<FashionBoutique mode="wardrobe" role={state.role} balance={state.balance} fashion={state.fashion} online={online} onChanged={updateWardrobe} onNotify={setToast}/>}
  {collectionTab==='decorations'&&state.role==='CARETAKER'&&(!state.inventory.length?<Empty icon="store" title="A little room for something lovely" text="Choose something in the store, then bring it home to your garden."/>:<div className="store-grid">{state.inventory.map(i=><article className="store-card" key={i.id}><ItemPicture kind={i.catalog_id}/><h3>{state.catalog.find(c=>c.id===i.catalog_id)?.name}</h3><button className="secondary full" onClick={()=>{setPlacing(i.id);setPanel(null);}}>{state.decorations.some(d=>d.inventory_id===i.id)?'Move in the garden':'Place in the garden'}</button>{state.decorations.some(d=>d.inventory_id===i.id)&&<button className="text-button" disabled={busy} onClick={()=>void act(()=>rpc('place_decoration',{p_inventory:i.id,p_slot:null}),'Safely tucked back into your collection.')}>Put away</button>}</article>)}</div>)}
  {collectionTab==='points'&&state.role==='CARETAKER'&&<><div className="points-total"><Icon name="heart" size={28}/>{state.balance}<span>LovePoints</span></div>{!state.transactions.length?<Empty icon="heart" title="Love adds up" text="Open your first bloom or discover a hidden gift to earn LovePoints."/>:<ul className="transaction-list">{[...state.transactions].sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(t=><li key={t.id}><span>{t.reason==='flower'?'A memory bloomed':t.reason==='gift'?'A surprise discovered':'Something lovely for the garden'}<small>{date(t.created_at)}</small></span><b className={t.amount>0?'positive':''}>{t.amount>0?'+':''}{t.amount} LP</b></li>)}</ul>}</>}
  </Modal>}

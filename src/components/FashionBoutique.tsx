@@ -1,11 +1,11 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {equipFashion,loadFashion,purchaseFashion} from '../lib/api';
-import type {FashionCatalogItem,FashionCharacter,FashionState,FashionVariant,PublicFashionState,Role} from '../lib/types';
+import type {FashionCatalogItem,FashionCharacter,FashionEquipResult,FashionState,FashionVariant,PublicFashionState,Role} from '../lib/types';
 import {CharacterSprite} from '../garden/CharacterSprite';
 import type {CharacterPose} from '../garden/characters';
 import {Icon} from './Art';
 
-type Props={mode:'shop'|'wardrobe';role:Role;balance:number;fashion:PublicFashionState;online:boolean;onChanged:()=>Promise<void>;onNotify:(message:string)=>void;onOpenWardrobe?:()=>void};
+type Props={mode:'shop'|'wardrobe';role:Role;balance:number;fashion:PublicFashionState;online:boolean;onChanged:(equipped?:FashionEquipResult)=>Promise<void>;onNotify:(message:string)=>void;onOpenWardrobe?:()=>void};
 type Collection='MEHEZAD'|'BOTH'|'DESI';
 const empty:FashionState={catalog:[],variants:[],ownership:[],equipped:[]};
 const defaultFor:Record<FashionCharacter,string>={LABIB:'default-labib',MEHEZAD:'default-mehezad'};
@@ -70,7 +70,13 @@ export default function FashionBoutique({mode,role,balance,fashion,online,onChan
   if(busyId||!character)return;
   const target=item.id===equippedId?defaultFor[character]:item.id;
   setBusyId(item.id);setFeedback('');
-  try{await equipFashion(target);const message=target===defaultFor[character]?'Back in the classic outfit.':`${item.name} is now equipped.`;setFeedback(message);onNotify(message);await reload();await onChanged();}
+  try{
+   const equipped=await equipFashion(target);
+   setSelected(equipped.catalog_id);
+   const message=target===defaultFor[character]?'Back in the classic outfit.':`${item.name} is now equipped.`;
+   setFeedback(message);onNotify(message);
+   await onChanged(equipped);
+  }
   catch(error){setFeedback(errorText(error));}finally{setBusyId(null);}
  };
 

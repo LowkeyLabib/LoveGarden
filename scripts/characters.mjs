@@ -82,7 +82,7 @@ const desiStyles=[
  ['desi-jamdani-sharee','mehezad','sharee','#6cae9d','#ade0c4','#477d72','#fff3cd','motifs'],
  ['desi-festive-lehenga','mehezad','lehenga','#d88a45','#ffc478','#985233','#f5a3b7','motifs'],
  ['desi-casual-kurti-panjabi','mehezad','kurti','#aaa66e','#d5cb90','#666745','#f4d0ad','floral'],
- ['desi-casual-kurti-panjabi','labib','panjabi','#83875e','#b1b486','#505538','#f4d0ad','plain'],
+ ['desi-casual-kurti-panjabi','labib','panjabi','#83875e','#b1b486','#505538','#f4d0ad','floral'],
  ['desi-pastel-kameez-panjabi','mehezad','kameez','#8db9a8','#bbe0cb','#597c75','#d6bce5','drape'],
  ['desi-pastel-kameez-panjabi','labib','panjabi','#ac91bd','#d6bce5','#70577e','#bbe0cb','plain'],
  ['desi-lal-par-sharee-white-panjabi','mehezad','sharee','#fff0d8','#fff9e9','#a72d44','#bb2d48','plain'],
@@ -100,13 +100,155 @@ const desiStyles=[
 }));
 fashionStyles.push(...desiStyles);
 
+const packed = color => Number.parseInt(color.slice(1) + 'ff', 16);
+const shirtPixels = new Set([
+ colors.pink, colors.pinkLight, colors.pinkShadow, colors.black, colors.blackLight, colors.blackShadow,
+ '#f7c9d5', '#ebafc2', '#53505a', '#777078',
+].map(packed));
+const trouserPixels = new Set([colors.jeans, colors.blackShadow, '#61718b', '#343945'].map(packed));
+const outlinePixel = packed(colors.outline);
+const mix = (a, b, amount) => '#' + [1, 3, 5].map(i => {
+ const from = Number.parseInt(a.slice(i, i + 2), 16);
+ const to = Number.parseInt(b.slice(i, i + 2), 16);
+ return Math.round(from + (to - from) * amount).toString(16).padStart(2, '0');
+}).join('');
+
+function drawDesi(style, pose, frame, back) {
+ const cloth = new Canvas();
+ const { person, kind, main, light, shade, detail, pattern } = style;
+ const walking = pose === 'walk';
+ const seated = pose === 'sit' || pose === 'smoke';
+ const step = walking ? [0, 2, 0, -2][frame] : 0;
+ const bend = pose === 'plant' ? [3, 5, 7, 4][frame] : 0;
+ const top = (person === 'mehezad' ? 29 : 27) + (seated ? 1 : walking ? frame % 2 : 0) + bend;
+ const edge = mix(shade, colors.outline, 0.46);
+ const fold = mix(main, shade, 0.53);
+ const trimShadow = mix(detail, edge, 0.37);
+ const paleBorder = kind === 'sharee' && style.ref.includes('lal-par');
+ const sharee = kind === 'sharee';
+ const lehenga = kind === 'lehenga';
+ const flared = sharee || lehenga || kind === 'anarkali';
+ const waist = top + (kind === 'anarkali' ? 5 : 7);
+ const hem = seated ? (flared ? 47 : 44) : flared ? 48 : kind === 'kurti' ? 42 : 45;
+ const hipShift = Math.sign(step);
+
+ // Knees and cuffs follow the existing stride; the tunic and skirt are layered over them below.
+ const pants = flared || style.ref.includes('black-sharee') ? shade : mix(detail, '#f5e9d2', 0.57);
+ const pantsShade = mix(pants, edge, 0.28);
+ const base = draw(person, pose, frame, back);
+ const article = new Canvas();
+ for (let y = top; y < H; y++) {
+  for (let x = 0; x < W; x++) {
+   const offset = (y * W + x) * 4;
+   const pixel = base.readUInt32BE(offset);
+   if (y >= 38 && trouserPixels.has(pixel)) article.dot(x, y, x < 24 ? pants : pantsShade);
+   else if (shirtPixels.has(pixel)) article.dot(x, y, x < 21 ? light : x > 28 ? shade : main);
+  }
+ }
+
+ // Tailored shoulders, a shaped waist and stepped, weighted lower folds.
+ for (let y = top; y <= hem; y++) {
+  const belowWaist = Math.max(0, y - waist);
+  const spread = y < waist ? (y - top < 4 ? 6 : 5) :
+   flared ? Math.min(10, 6 + Math.floor(belowWaist / (sharee ? 3 : 2))) : y >= hem - 2 ? 7 : 6;
+  const shift = y > waist + 3 ? (seated ? -1 : hipShift) : 0;
+  const left = 24 - spread + shift;
+  const right = 24 + spread + shift;
+  const blouse = y < waist && (sharee || lehenga);
+  const shell = blouse ? (paleBorder ? detail : fold) : main;
+  cloth.rect(left, y, right - left + 1, 1, edge);
+  cloth.rect(left + 1, y, right - left - 1, 1, shell);
+  cloth.dot(left + 1, y, blouse && paleBorder ? trimShadow : light);
+  cloth.rect(right - 2, y, 2, 1, fold);
+  if (y > waist && flared) {
+   // The sharee's narrow front pleats differ from the radial folds of a stitched skirt.
+   const pleat = sharee ? 22 + shift + Math.floor(belowWaist / 6) : 22 + shift - Math.floor(belowWaist / 5);
+   cloth.dot(pleat, y, fold);
+   cloth.dot(pleat + 1, y, light);
+   cloth.dot(sharee ? pleat + 3 : right - 3, y, shade);
+  }
+  if (y === hem || (flared && y === hem - 1)) {
+   cloth.rect(left + 1, y, right - left - 1, 1, y === hem ? trimShadow : detail);
+  }
+ }
+
+ // Woven buta diamonds and embroidered borders use small, spaced stitches.
+ if (pattern === 'motifs') {
+  const motifStart = flared ? waist + 2 : top + 7;
+  const thread = mix(detail, light, 0.30);
+  for (let y = motifStart; y + 1 < hem - 1; y += 4) {
+   for (const x of ((y - motifStart) % 8 === 0 ? [20, 27] : [23])) {
+    cloth.dot(x, y - 1, thread);
+    cloth.rect(x - 1, y, 3, 1, detail);
+    cloth.dot(x, y + 1, trimShadow);
+   }
+  }
+ }
+ if (pattern === 'floral' && !back) {
+  const blooms = kind === 'kurti' ? [[21, top + 4], [27, top + 7], [21, hem - 3]] : [[22, top + 5], [27, top + 7]];
+  for (const [x, y] of blooms) {
+   cloth.rect(x - 1, y, 3, 1, detail);
+   cloth.dot(x, y - 1, light);
+   cloth.dot(x + 1, y + 1, trimShadow);
+  }
+ }
+
+ if (sharee) {
+  const shoulder = back ? 19 : 28;
+  const end = back ? 17 + hipShift : (seated ? 18 : 19 + hipShift);
+  const drape = back ? top + 5 : waist + 2;
+  const tail = Math.min(hem - 2, drape + (back ? 8 : 4));
+  // Lead the wrapped band to a wider, bordered pallu with its own hanging end.
+  cloth.line(shoulder - 2, top, end, drape, trimShadow, 5);
+  cloth.line(shoulder - 1, top, end + 1, drape, light, 3);
+  cloth.line(shoulder + 2, top, end + 4, drape, detail);
+  cloth.line(end, drape, end - (back ? 1 : 0), tail - 2, trimShadow, 5);
+  cloth.line(end + 1, drape, end + 1, tail - 2, main, 3);
+  cloth.rect(end, tail - 1, 5, 2, detail);
+  cloth.rect(end + 1, tail - 1, 3, 1, light);
+  if (pattern === 'motifs') cloth.dot(end + 2, tail - 3, detail);
+ } else if (kind === 'kameez' || flared) {
+  const shoulder = back ? 19 : 28;
+  const end = shoulder + (back ? -1 : 1) + hipShift;
+  const tail = Math.min(hem - 1, top + (back ? 13 : 11));
+  if (lehenga || kind === 'anarkali') cloth.rect(19, waist, 11, 1, detail);
+  // A shoulder fold runs into a separate dupatta panel, finished with a selvedge.
+  cloth.line(shoulder - 1, top, end - 1, tail - 1, trimShadow, 4);
+  cloth.line(shoulder, top, end, tail - 1, detail, 2);
+  cloth.rect(end - 1, tail, 4, 1, light);
+  if (!back) cloth.line(21, top + 1, 24, top + 3, trimShadow);
+ } else if (!back) {
+  cloth.rect(22, top, 5, 2, kind === 'panjabi' ? shade : detail);
+  cloth.line(24, top + 2, 24, top + 7, edge);
+  cloth.line(25, top + 2, 25, top + 7, detail);
+  if (kind === 'panjabi') {
+   cloth.dot(26, top + 4, light);
+   cloth.dot(26, top + 7, light);
+   cloth.line(29 + hipShift, hem - 4, 29 + hipShift, hem - 1, shade);
+  }
+ }
+
+ // Preserve occluders from the same pose, including hair, hands and carried props.
+ for (let y = top; y < H; y++) {
+  for (let x = 0; x < W; x++) {
+   const offset = (y * W + x) * 4;
+   if (!cloth.data[offset + 3]) continue;
+   const pixel = base.readUInt32BE(offset);
+   const covered = base[offset + 3] < 255 || shirtPixels.has(pixel) || trouserPixels.has(pixel) ||
+    (pixel === outlinePixel && y <= 40 && x >= 18 && x <= 30);
+   if (covered) cloth.data.copy(article.data, offset, offset, offset + 4);
+  }
+ }
+ return article.data;
+}
+
 function drawFashion(style,pose,frame,back){
+ if(style.pattern)return drawDesi(style,pose,frame,back);
  const c=new Canvas(),girl=style.person==='mehezad',walk=pose==='walk',sit=pose==='sit'||pose==='smoke',plant=pose==='plant';
  const step=walk?[0,2,0,-2][frame]:0,bob=walk&&frame%2?1:0,bend=plant?[3,5,7,4][frame]:0;
  const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend;
  const trousers=style.kind==='pajamas'?style.main:style.kind==='hoodie'?(girl?'#596882':'#333e48'):style.kind==='formal'?'#222b43':style.shade;
  const dress=style.kind==='dress'||style.kind==='formal-dress';
- const desi=Boolean(style.pattern);
  if(dress){
   const end=sit?45:47;
   for(let y=top+7;y<=end;y++){
@@ -121,20 +263,6 @@ function drawFashion(style,pose,frame,back){
  }else{
   c.rect(19,hip,5,8+Math.max(0,step),trousers);c.rect(25,hip,5,8-Math.min(0,step),trousers);
   c.rect(20,hip+1,1,6,style.light);c.rect(28,hip+1,1,6,style.shade);
- }
- if(desi){
-  const skirt=['sharee','anarkali','lehenga'].includes(style.kind);
-  const hem=sit?44:skirt?47:style.kind==='kurti'?42:44;
-  for(let y=top+6;y<=hem;y++){
-   const spread=skirt?Math.min(9,5+Math.floor((y-top-6)/2)):6;
-   c.rect(24-spread,y,spread*2+1,1,y===hem?style.detail:style.main);
-   if(y===hem)continue;
-   c.dot(24-spread,y,style.light);c.dot(24+spread,y,style.shade);
-   if(skirt&&y%2===0)c.dot(22+Math.floor((y-top)/5),y,style.shade);
-   if(style.pattern==='motifs'&&y%3===0){
-    for(let x=20;x<=28;x+=4)c.dot(x+(y%2),y,style.detail);
-   }
-  }
  }
  const wide=style.kind==='hoodie';
  c.rect(wide?17:18,top,wide?15:13,Math.max(5,(sit?41:40)-top),colors.outline);
@@ -159,27 +287,6 @@ function drawFashion(style,pose,frame,back){
  if(plant)c.line(29,top+3,35,43+frame%2,style.main,3);
  if(pose==='water')c.line(29,top+4,33,top+7,style.main,3);
  if(pose==='smoke'){const raised=frame===1||frame===2;c.line(29,top+4,raised?30:33,raised?top-2:top+8,style.main,3);}
- if(desi){
-  if(style.kind==='sharee'){
-   const shoulder=back?19:28,waist=back?27:19;
-   c.line(shoulder,top,waist,top+10,style.detail,3);
-   c.line(shoulder+1,top+1,waist+1,top+10,style.light);
-   c.line(waist,top+10,waist-2,sit?43:46,style.detail);
-  }else if(style.pattern==='drape'||style.kind==='lehenga'||style.kind==='anarkali'){
-   c.line(back?19:28,top,back?23:26,top+9,style.detail,3);
-   c.line(back?22:27,top+7,back?19:30,sit?42:44,style.detail,2);
-   if(style.kind==='lehenga')c.rect(18,top+7,12,1,style.light);
-  }else if(!back){
-   c.rect(22,top,5,2,style.detail);
-   c.line(24,top+2,24,top+8,style.shade);
-   for(let y=top+3;y<=top+8;y+=2)c.dot(25,y,style.detail);
-   if(style.pattern==='floral'){
-    for(const [x,y] of [[21,top+4],[28,top+7]]){
-     c.dot(x-1,y,style.detail);c.dot(x+1,y,style.detail);c.dot(x,y+1,style.light);
-    }
-   }
-  }
- }
  return c.data;
 }
 const fashionColumns=48,fashionAtlas=Buffer.alloc(fashionColumns*W*Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H*4);let fashionIndex=0;
