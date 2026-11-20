@@ -42,8 +42,10 @@ export default function FashionBoutique({mode,role,balance,fashion,online,onChan
   const timer=window.setInterval(()=>setFrame(value=>(value+1)%4),320);
   return()=>window.clearInterval(timer);
  },[]);
- const variants=data.variants.length?data.variants:fashion.variants;
- const equipped=data.equipped.length?data.equipped:fashion.equipped;
+ // Prefer the shared public state so Realtime wardrobe changes made on another client
+ // update an already-open boutique; the private load still supplies ownership data.
+ const variants=fashion.variants.length?fashion.variants:data.variants;
+ const equipped=fashion.equipped.length?fashion.equipped:data.equipped;
  const owned=useMemo(()=>new Set([...data.catalog.filter(item=>item.is_default).map(item=>item.id),...data.ownership.map(item=>item.catalog_id)]),[data]);
  const shopItems=data.catalog.filter(item=>!item.is_default&&item.ownership_target===collection);
  const selectedItem=data.catalog.find(item=>item.id===selected)||shopItems[0];
@@ -75,7 +77,7 @@ export default function FashionBoutique({mode,role,balance,fashion,online,onChan
  if(!data.catalog.length)return <div className="fashion-feedback error" role="alert">Fashion is waiting for its database migration.</div>;
 
  if(mode==='wardrobe'){
-  if(!character)return <section className="fashion-boutique wardrobe-view"><div className="fashion-hero guest-wardrobe"><div><span className="fashion-kicker">Shared wardrobe</span><h3>Today’s garden looks</h3><p>Guests can admire the couple’s current outfits. Sign in as Labib or Mehezad to change clothes.</p></div><div className="current-couple">{(['LABIB','MEHEZAD'] as FashionCharacter[]).map((person,index)=>{const id=equipped.find(e=>e.character===person&&e.slot==='outfit')?.catalog_id||defaultFor[person];const item=data.catalog.find(i=>i.id===id)||data.catalog.find(i=>i.id===defaultFor[person]);return item&&<WardrobePreview key={person} character={person} item={item} variants={variants} frame={frame}/>;})}</div></div></section>;
+  if(!character)return <section className="fashion-boutique wardrobe-view"><div className="fashion-hero guest-wardrobe"><div><span className="fashion-kicker">Shared wardrobe</span><h3>Today’s garden looks</h3><p>Guests can admire the couple’s current outfits. Sign in as Labib or Mehezad to change clothes.</p></div><div className="current-couple">{(['LABIB','MEHEZAD'] as FashionCharacter[]).map(person=>{const id=equipped.find(e=>e.character===person&&e.slot==='outfit')?.catalog_id||defaultFor[person];const item=data.catalog.find(i=>i.id===id)||data.catalog.find(i=>i.id===defaultFor[person]);return item&&<WardrobePreview key={person} character={person} item={item} variants={variants} frame={frame}/>;})}</div></div></section>;
   return <section className="fashion-boutique wardrobe-view">
    <div className="fashion-hero wardrobe-hero">{wardrobeSelection&&<WardrobePreview character={character} item={wardrobeSelection} variants={variants} frame={frame}/>}<div><span className="fashion-kicker">{character==='LABIB'?"Labib’s wardrobe":"Mehezad’s wardrobe"}</span><h3>{wardrobeSelection?.name||'Classic outfit'}</h3><p>Select an owned look to preview it live, then equip it for everyone in the garden to see.</p><span className="fashion-live"><i/>Live preview</span></div></div>
    {feedback&&<p className={`fashion-feedback ${feedback.includes('now')||feedback.includes('classic')?'success':'error'}`} role="status">{feedback}</p>}
