@@ -1,0 +1,1 @@
+Original LoveGarden wardrobe sprites, authored for this project. No third-party artwork is included. Rebuild with scripts/characters.mjs.

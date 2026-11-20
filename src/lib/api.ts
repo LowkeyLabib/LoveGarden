@@ -7,7 +7,7 @@ export const supabase = url && key && !url.includes('YOUR_PROJECT') ? createClie
 export const catalog:Catalog[] = [
  ['lantern','Fairy lantern','A little golden light for moonlit evenings.',75],['bench','Garden bench','A quiet place to sit together, always.',100],['butterfly','Butterfly haven','A gathering place for fluttering friends.',150],['arch','Flower arch','A doorway wrapped in climbing roses.',200],['fountain','Little fountain','A soft ripple, a wish, a moment of peace.',250],['cottage','Tiny cottage','A storybook home for your sweetest dreams.',500],['birdhouse','Songbird house','A home for the morning chorus.',125],['heart','Heart ornament','A small reminder of a very big love.',80],['tree','Wishing tree','Tie a little hope to every branch.',300],['seasonal','Harvest pumpkins','Warm autumn colors for your world.',90],
 ].map(([id,name,description,price])=>({id:String(id),name:String(name),description:String(description),price:Number(price),category:'DECORATION'}));
-export const emptyGarden:GardenState = {seeds:[],gifts:[],decorations:[],catalog,inventory:[],transactions:[],balance:0,role:'GUEST',epoch:EPOCH,serverTime:Date.now(),angryMode:false,rainbowMode:false,noDataMode:false};
+export const emptyGarden:GardenState = {seeds:[],gifts:[],decorations:[],catalog,inventory:[],transactions:[],fashion:{variants:[],equipped:[]},balance:0,role:'GUEST',epoch:EPOCH,serverTime:Date.now(),angryMode:false,rainbowMode:false,noDataMode:false};
 async function rows(table:string) {
  const result:unknown[]=[];
  for(let offset=0;;offset+=1000){
@@ -17,10 +17,18 @@ async function rows(table:string) {
   if(data.length<1000) return result;
  }
 }
+async function optionalRows(table:string){
+ try{return await rows(table);}
+ catch(error){
+  const code=(error as {code?:string}).code;
+  if(code==='42P01'||code==='PGRST205')return [];
+  throw error;
+ }
+}
 export async function loadGarden():Promise<GardenState>{
  if(!supabase) return {...emptyGarden,serverTime:Date.now()};
- const [seeds,gifts,decorations,store,clock,profile] = await Promise.all([
- rows('seeds'),rows('gifts'),rows('decorations'),rows('store_catalog'),supabase.rpc('garden_clock'),supabase.from('profiles').select('role').maybeSingle()
+ const [seeds,gifts,decorations,store,variants,equipped,clock,profile] = await Promise.all([
+ rows('seeds'),rows('gifts'),rows('decorations'),rows('store_catalog'),optionalRows('fashion_variants'),optionalRows('character_wardrobe'),supabase.rpc('garden_clock'),supabase.from('profiles').select('role').maybeSingle()
  ]);
  if(clock.error) throw clock.error;
  // Anonymous users have no profile-table privilege; that expected denial is not an app error.
@@ -33,7 +41,7 @@ export async function loadGarden():Promise<GardenState>{
   inventory=i;transactions=t;balance=w.data?.balance??0;
  }
  const decorationsCatalog=(store as Catalog[]).filter(item=>item.category!=='FASHION');
- return {seeds,gifts,decorations,catalog:decorationsCatalog,inventory,transactions,balance,role,angryMode:clock.data.angry_mode===true,rainbowMode:clock.data.rainbow_mode===true,noDataMode:clock.data.no_data_mode===true,epoch:Date.parse(clock.data.epoch),serverTime:Date.parse(clock.data.server_time)} as GardenState;
+ return {seeds,gifts,decorations,catalog:decorationsCatalog,inventory,transactions,fashion:{variants:variants as FashionVariant[],equipped:equipped as EquippedFashion[]},balance,role,angryMode:clock.data.angry_mode===true,rainbowMode:clock.data.rainbow_mode===true,noDataMode:clock.data.no_data_mode===true,epoch:Date.parse(clock.data.epoch),serverTime:Date.parse(clock.data.server_time)} as GardenState;
 }
 export async function rpc(name:string,args:Record<string,unknown>){
  if(!navigator.onLine) throw new Error('Reconnect to the internet to tend the garden.');

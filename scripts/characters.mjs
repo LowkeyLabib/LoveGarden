@@ -58,7 +58,77 @@ for(const person of ['labib','mehezad'])for(const pose of poses)for(const direct
  for(let y=0;y<H;y++)for(let x=0;x<W;x++){const source=(y*W+(mirror?W-1-x:x))*4,target=((top+y)*columns*W+left+x)*4;pixels.copy(atlas,target,source,source+4);}
  frames[`${person}-${pose}-${direction}-${frame}`]={x:left,y:top,w:W,h:H,anchorX:24,anchorY:49};index++;
 }
+
+// Wardrobe art is a transparent pixel layer over the original body atlas. Each
+// sprite reference can be equipped independently in outfit/headwear/accessory slots.
+const fashionStyles=[
+ {ref:'fashion/mehezad/pink-summer-dress',person:'mehezad',kind:'dress',main:'#e887aa',light:'#ffc1d4',shade:'#bd5f83',detail:'#fff0c8'},
+ {ref:'fashion/mehezad/cozy-hoodie',person:'mehezad',kind:'hoodie',main:'#b49bc9',light:'#dac5e7',shade:'#7e6a9b',detail:'#f4e9cf'},
+ {ref:'fashion/mehezad/cottagecore-dress',person:'mehezad',kind:'dress',main:'#89a777',light:'#c5d5a5',shade:'#5e7957',detail:'#f6e4b9'},
+ {ref:'fashion/labib/matching-pajamas',person:'labib',kind:'pajamas',main:'#547f9f',light:'#86aec2',shade:'#385a78',detail:'#f4d389'},
+ {ref:'fashion/mehezad/matching-pajamas',person:'mehezad',kind:'pajamas',main:'#547f9f',light:'#86aec2',shade:'#385a78',detail:'#f4d389'},
+ {ref:'fashion/labib/matching-hoodies',person:'labib',kind:'hoodie',main:'#648366',light:'#92aa78',shade:'#3e614c',detail:'#e7d39a'},
+ {ref:'fashion/mehezad/matching-hoodies',person:'mehezad',kind:'hoodie',main:'#648366',light:'#92aa78',shade:'#3e614c',detail:'#e7d39a'},
+ {ref:'fashion/labib/romantic-formal-set',person:'labib',kind:'formal',main:'#303c5b',light:'#5d6b8c',shade:'#1c253c',detail:'#d48391'},
+ {ref:'fashion/mehezad/romantic-formal-set',person:'mehezad',kind:'formal-dress',main:'#8f425d',light:'#c56e85',shade:'#5f2944',detail:'#e7bd82'},
+];
+function drawFashion(style,pose,frame,back){
+ const c=new Canvas(),girl=style.person==='mehezad',walk=pose==='walk',sit=pose==='sit'||pose==='smoke',plant=pose==='plant';
+ const step=walk?[0,2,0,-2][frame]:0,bob=walk&&frame%2?1:0,bend=plant?[3,5,7,4][frame]:0;
+ const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend;
+ const trousers=style.kind==='pajamas'?style.main:style.kind==='hoodie'?(girl?'#596882':'#333e48'):style.kind==='formal'?'#222b43':style.shade;
+ const dress=style.kind==='dress'||style.kind==='formal-dress';
+ if(dress){
+  const end=sit?45:47;
+  for(let y=top+7;y<=end;y++){
+   const spread=Math.min(9,4+Math.floor((y-(top+7))/2));
+   c.rect(24-spread,y,spread*2+1,1,y===end?style.detail:(y%4===0?style.light:style.main));
+  }
+  c.rect(18,top+7,13,2,style.shade);
+ }else if(sit){
+  c.line(20,hip,17,hip+6,trousers,4);c.line(27,hip+3,24,hip+9,trousers,4);
+ }else if(plant){
+  c.rect(19,44,6,4,trousers);c.rect(25,42,5,6,trousers);
+ }else{
+  c.rect(19,hip,5,8+Math.max(0,step),trousers);c.rect(25,hip,5,8-Math.min(0,step),trousers);
+  c.rect(20,hip+1,1,6,style.light);c.rect(28,hip+1,1,6,style.shade);
+ }
+ const wide=style.kind==='hoodie';
+ c.rect(wide?17:18,top,wide?15:13,Math.max(5,(sit?41:40)-top),colors.outline);
+ c.rect(wide?18:19,top,wide?13:11,Math.max(5,(sit?40:39)-top),style.main);
+ c.rect(wide?18:19,top+1,3,7,style.light);c.rect(wide?29:28,top+2,2,8,style.shade);
+ if(style.kind==='hoodie'){
+  c.rect(20,top,9,2,style.light);c.rect(21,top+8,7,3,style.shade);c.rect(22,top+8,5,1,style.detail);
+  c.line(22,top+1,22,top+5,style.detail);c.line(28,top+1,28,top+5,style.detail);
+ }else if(style.kind==='pajamas'){
+  c.rect(19,top+5,11,1,style.light);c.rect(24,top,1,11,style.detail);
+  if(!back){c.dot(21,top+3,style.detail);c.dot(28,top+8,style.detail);}
+ }else if(style.kind==='formal'){
+  c.line(19,top,24,top+7,style.light);c.line(30,top,25,top+7,style.shade);
+  c.rect(24,top+1,2,8,style.detail);c.dot(25,top+10,style.light);
+ }else{
+  c.line(21,top,24,top+2,style.detail);c.line(24,top+2,28,top,style.light);
+  if(!back){c.dot(21,top+7,style.detail);c.dot(27,top+10,style.detail);}
+ }
+ const armSwing=walk?step:0;
+ c.line(18,top+2,17,top+8-armSwing,style.shade,3);c.line(30,top+2,31,top+8+armSwing,style.main,3);
+ if(sit){c.line(18,top+4,21,40,style.main,3);c.line(30,top+4,27,43,style.shade,3);}
+ if(plant)c.line(29,top+3,35,43+frame%2,style.main,3);
+ if(pose==='water')c.line(29,top+4,33,top+7,style.main,3);
+ if(pose==='smoke'){const raised=frame===1||frame===2;c.line(29,top+4,raised?30:33,raised?top-2:top+8,style.main,3);}
+ return c.data;
+}
+const fashionColumns=16,fashionAtlas=Buffer.alloc(fashionColumns*W*Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H*4);let fashionIndex=0;
+for(const style of fashionStyles)for(const pose of poses)for(const direction of directions)for(let frame=0;frame<4;frame++){
+ const pixels=drawFashion(style,pose,frame,direction[0]==='n'),mirror=direction[1]==='w',left=fashionIndex%fashionColumns*W,top=Math.floor(fashionIndex/fashionColumns)*H;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const source=(y*W+(mirror?W-1-x:x))*4,target=((top+y)*fashionColumns*W+left+x)*4;pixels.copy(fashionAtlas,target,source,source+4);}
+ fashionIndex++;
+}
 await sharp(atlas,{raw:{width:columns*W,height:rows*H,channels:4}}).png().toFile('public/art/characters.png');
 await writeFile('src/garden/characters.json',JSON.stringify({width:columns*W,height:rows*H,frames}));
+const fashionHeight=Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H;
+await sharp(fashionAtlas,{raw:{width:fashionColumns*W,height:fashionHeight,channels:4}}).png().toFile('public/art/fashion.png');
+await writeFile('src/garden/fashion.json',JSON.stringify({width:fashionColumns*W,height:fashionHeight,columns:fashionColumns,styles:fashionStyles.map(style=>style.ref)}));
 await writeFile('public/art/characters-LICENSE.txt','Original LoveGarden character sprites, authored for this project. No reference photographs or third-party artwork are included. Rebuild with scripts/characters.mjs.\n');
-console.log(`Created ${index} original character frames.`);
+await writeFile('public/art/fashion-LICENSE.txt','Original LoveGarden wardrobe sprites, authored for this project. No third-party artwork is included. Rebuild with scripts/characters.mjs.\n');
+console.log(`Created ${index} character frames and ${fashionIndex} wardrobe layer frames.`);

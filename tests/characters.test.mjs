@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {CharacterDirector,WalkingMap} from '../src/garden/characters.ts';
 import {decorSlots} from '../src/garden/world.ts';
 const epoch=Date.parse('2026-01-01T00:00:00Z');
-const garden=()=>({seeds:[],gifts:[],decorations:[],catalog:[],inventory:[],transactions:[],balance:0,role:'GUEST',epoch,serverTime:epoch,angryMode:false,rainbowMode:false});
+const garden=()=>({seeds:[],gifts:[],decorations:[],catalog:[],inventory:[],transactions:[],fashion:{variants:[],equipped:[]},balance:0,role:'GUEST',epoch,serverTime:epoch,angryMode:false,rainbowMode:false,noDataMode:false});
 const run=(director,state,start,seconds)=>{const history=[];for(let t=0;t<=seconds;t+=.1)history.push(director.update(state,start+t*1000,.1));return history;};
 test('walking routes avoid plots, water, scenery and placed decorations',()=>{
  const map=new WalkingMap([{inventory_id:'test',catalog_id:'cottage',slot:0}]);
