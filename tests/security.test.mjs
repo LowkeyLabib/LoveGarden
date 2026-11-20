@@ -141,46 +141,48 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   assert.deepEqual(desiRefs.map(row=>row.sprite_ref).sort(),manifest.styles.filter(ref=>ref.includes('/desi-')).sort());
   assert.equal((await one('select count(*)::int n from public.character_wardrobe')).n,2);
   assert.equal((await one('select count(*)::int n from public.fashion_ownership')).n,0);
-  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['pink-summer-dress',soloRequest]),/permission denied/);
+  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['desi-floral-kurti',soloRequest]),/permission denied/);
   await assert.rejects(()=>db.query('select public.equip_fashion($1)',['default-labib']),/permission denied/);
 
   await as(stranger);
-  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['pink-summer-dress',soloRequest]),/caretaker/);
-  await assert.rejects(()=>db.query('select private.purchase_fashion($1,$2)',['pink-summer-dress',soloRequest]),/caretaker/);
+  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['desi-floral-kurti',soloRequest]),/caretaker/);
+  await assert.rejects(()=>db.query('select private.purchase_fashion($1,$2)',['desi-floral-kurti',soloRequest]),/caretaker/);
   await assert.rejects(()=>db.query('select public.equip_fashion($1)',['default-labib']),/belongs to Labib and Mehezad/);
   await assert.rejects(()=>db.query('select private.equip_fashion($1)',['default-labib']),/belongs to Labib and Mehezad/);
-  await assert.rejects(()=>db.query('insert into public.fashion_ownership(id,catalog_id,purchased_by) values($1,$2,$3)',[soloRequest,'pink-summer-dress',caretaker]),/permission denied/);
+  await assert.rejects(()=>db.query('insert into public.fashion_ownership(id,catalog_id,purchased_by) values($1,$2,$3)',[soloRequest,'desi-floral-kurti',caretaker]),/permission denied/);
 
   await as(gardener);
-  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['pink-summer-dress',soloRequest]),/caretaker/);
-  await assert.rejects(()=>db.query('select private.purchase_fashion($1,$2)',['pink-summer-dress',soloRequest]),/caretaker/);
+  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['desi-floral-kurti',soloRequest]),/caretaker/);
+  await assert.rejects(()=>db.query('select private.purchase_fashion($1,$2)',['desi-floral-kurti',soloRequest]),/caretaker/);
   await db.query('select public.equip_fashion($1)',['default-labib']);
-  await assert.rejects(()=>db.query('select public.equip_fashion($1)',['pink-summer-dress']),/not available/);
+  await assert.rejects(()=>db.query('select public.equip_fashion($1)',['desi-floral-kurti']),/not available/);
 
   await db.exec('reset role');await db.query('update public.wallets set balance=2000 where user_id=$1',[caretaker]);
   await as(caretaker);
   await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['default-mehezad',crypto.randomUUID()]),/not found/);
-  const first=(await one('select public.purchase_fashion($1,$2) result',['pink-summer-dress',soloRequest])).result;
-  assert.equal(first.purchased,true);assert.equal(first.balance,1900);
-  const replay=(await one('select public.purchase_fashion($1,$2) result',['pink-summer-dress',soloRequest])).result;
+  await assert.rejects(()=>db.query('select public.purchase($1,$2)',['desi-floral-kurti',crypto.randomUUID()]),/Decoration not found/);
+  const first=(await one('select public.purchase_fashion($1,$2) result',['desi-floral-kurti',soloRequest])).result;
+  assert.equal(first.purchased,true);assert.equal(first.balance,1910);
+  const replay=(await one('select public.purchase_fashion($1,$2) result',['desi-floral-kurti',soloRequest])).result;
   assert.equal(replay.purchased,false);assert.equal(replay.ownership_id,soloRequest);
-  const duplicate=(await one('select public.purchase_fashion($1,$2) result',['pink-summer-dress',duplicateRequest])).result;
+  const duplicate=(await one('select public.purchase_fashion($1,$2) result',['desi-floral-kurti',duplicateRequest])).result;
   assert.equal(duplicate.purchased,false);assert.equal(duplicate.ownership_id,soloRequest);
-  assert.equal((await one('select balance from public.wallets where user_id=$1',[caretaker])).balance,1900);
+  assert.equal((await one('select balance from public.wallets where user_id=$1',[caretaker])).balance,1910);
   assert.equal((await one("select count(*)::int n from public.point_transactions where reason='fashion_purchase'")).n,1);
-  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['matching-pajamas',soloRequest]),/different item/);
-  await db.query('select public.equip_fashion($1)',['pink-summer-dress']);
-  assert.equal((await one("select catalog_id from public.character_wardrobe where character='MEHEZAD' and slot='outfit'")).catalog_id,'pink-summer-dress');
+  await assert.rejects(()=>db.query('select public.purchase_fashion($1,$2)',['desi-casual-kurti-panjabi',soloRequest]),/different item/);
+  await db.query('select public.equip_fashion($1)',['desi-floral-kurti']);
+  assert.equal((await one("select catalog_id from public.character_wardrobe where character='MEHEZAD' and slot='outfit'")).catalog_id,'desi-floral-kurti');
 
-  const matching=(await one('select public.purchase_fashion($1,$2) result',['matching-pajamas',matchRequest])).result;
-  assert.equal(matching.purchased,true);assert.equal(matching.balance,1550);
-  await db.query('select public.equip_fashion($1)',['matching-pajamas']);
+  const matching=(await one('select public.purchase_fashion($1,$2) result',['desi-casual-kurti-panjabi',matchRequest])).result;
+  assert.equal(matching.purchased,true);assert.equal(matching.balance,1660);
+  await db.query('select public.equip_fashion($1)',['desi-casual-kurti-panjabi']);
   await assert.rejects(()=>db.query('select public.equip_fashion($1)',['matching-hoodies']),/not been unlocked/);
-  await as(gardener);await db.query('select public.equip_fashion($1)',['matching-pajamas']);
-  assert.equal((await one("select catalog_id from public.character_wardrobe where character='LABIB' and slot='outfit'")).catalog_id,'matching-pajamas');
+  await as(gardener);await db.query('select public.equip_fashion($1)',['desi-casual-kurti-panjabi']);
+  assert.equal((await one("select catalog_id from public.character_wardrobe where character='LABIB' and slot='outfit'")).catalog_id,'desi-casual-kurti-panjabi');
   await assert.rejects(()=>db.query("update public.character_wardrobe set catalog_id='default-labib' where character='LABIB'"),/permission denied/);
   assert.equal((await one('select count(*)::int n from public.fashion_ownership')).n,2);
   await as(stranger);assert.equal((await one('select count(*)::int n from public.fashion_ownership')).n,0);
+  assert.equal((await one("select count(*)::int n from public.character_wardrobe where catalog_id='desi-casual-kurti-panjabi'")).n,2);
 
   await db.exec('reset role');await db.query('update public.wallets set balance=100 where user_id=$1',[caretaker]);
   await as(caretaker);

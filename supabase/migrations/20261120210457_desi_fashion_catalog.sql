@@ -42,4 +42,26 @@ from fashion_items f
 cross join (values ('MEHEZAD'), ('LABIB')) as wearer(character)
 where wearer.character = 'MEHEZAD' or f.ownership_target = 'BOTH';
 
+-- Clothing purchases must go through the wardrobe's idempotent purchase RPC.
+create or replace function private.purchase(p_catalog text,p_request uuid)
+returns uuid language plpgsql security definer set search_path='' as $$
+declare cost int; old_catalog text; funds int;
+begin
+ perform private.require_role('CARETAKER');
+ insert into public.wallets(user_id) values(auth.uid()) on conflict do nothing;
+ select balance into funds from public.wallets where user_id=auth.uid() for update;
+ select catalog_id into old_catalog from public.inventory where id=p_request and user_id=auth.uid();
+ if found then
+   if old_catalog<>p_catalog then raise exception 'Purchase request already used for a different item'; end if;
+   return p_request;
+ end if;
+ select price into cost from public.store_catalog where id=p_catalog and category='DECORATION';
+ if cost is null then raise exception 'Decoration not found'; end if;
+ if funds<cost then raise exception 'A few more LovePoints are needed'; end if;
+ insert into public.inventory(id,user_id,catalog_id) values(p_request,auth.uid(),p_catalog);
+ update public.wallets set balance=balance-cost where user_id=auth.uid();
+ insert into public.point_transactions(user_id,amount,reason,source_id) values(auth.uid(),-cost,'purchase',p_request);
+ return p_request;
+end $$;
+
 commit;
