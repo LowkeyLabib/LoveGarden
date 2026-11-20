@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { connectGardenCamera, constrainCamera, gardenSize, moveCamera } from '../src/garden/camera.ts';
+import { decorSlots, hidingPlaces, spots } from '../src/garden/world.ts';
 
 const portrait = { width: 390, height: 650 };
 
 test('viewport and zoom bounds allow both world edges in each axis', () => {
- for (const viewport of [portrait, { width: 1400, height: 540 }]) {
+ for (const viewport of [portrait, { width: 650, height: 390 }, { width: 1400, height: 540 }]) {
   for (const zoom of [0.75, 1, 2.5]) {
    const low = constrainCamera({ x: -10000, y: -10000, zoom }, viewport);
    const high = constrainCamera({ x: 10000, y: 10000, zoom }, viewport);
@@ -15,6 +16,11 @@ test('viewport and zoom bounds allow both world edges in each axis', () => {
    assert.ok(high.x + halfWidth >= gardenSize.width && high.y + halfHeight >= gardenSize.height);
    assert.ok(low.x >= 0 && high.x <= gardenSize.width);
    assert.ok(low.y >= 0 && high.y <= gardenSize.height);
+   for (const point of [...spots, ...hidingPlaces, ...decorSlots]) {
+    const camera = constrainCamera({ ...point, zoom }, viewport);
+    assert.ok(Math.abs(point.x - camera.x) < halfWidth);
+    assert.ok(Math.abs(point.y - camera.y) < halfHeight);
+   }
   }
  }
 });
@@ -36,6 +42,8 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  const frames = new Map();
  let frameID = 0;
  let resize;
+ let frameTime = 0;
+ const motion = { matches: true };
  class Surface extends EventTarget {
   bounds = { ...portrait, left: 12, top: 30 };
   captured = new Set();
@@ -47,7 +55,7 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  }
  const globals = {
   window: Object.assign(new EventTarget(), {
-   matchMedia: () => ({ matches: true }),
+   matchMedia: () => motion,
    requestAnimationFrame: cb => (frames.set(++frameID, cb), frameID),
    cancelAnimationFrame: id => frames.delete(id),
   }),
@@ -83,9 +91,10 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
   send('pointer' + type, { clientX: x, clientY: y, pointerId: id, pointerType, button: 0 });
  const click = () => send('click', { detail: 1 });
  const flush = () => {
+  frameTime += 16;
   const pending = [...frames.values()];
   frames.clear();
-  pending.forEach(cb => cb(performance.now()));
+  pending.forEach(cb => cb(frameTime));
  };
  const initial = surface.viewBox;
  pointer('down', 180, 300);
@@ -132,7 +141,24 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  controls.reset();
  flush();
  assert.deepEqual(surface.viewBox, initial);
+
+ controls.zoom(2);
+ flush();
+ assert.equal(surface.viewBox[3], 240);
+ controls.zoom(0.75);
+ flush();
+ assert.equal(surface.viewBox[3], 320);
+ motion.matches = false;
+ controls.reset();
+ flush();
+ assert.ok(surface.viewBox[3] > 320 && surface.viewBox[3] < 480);
  surface.bounds = { ...surface.bounds, width: 650, height: 390 };
  resize();
  assert.ok(Math.abs(surface.viewBox[2] / surface.viewBox[3] - 650 / 390) < 1e-9);
+ for (let i = 0; frames.size && i < 40; i++) flush();
+ assert.equal(frames.size, 0);
+ const [x, y, width, height] = surface.viewBox;
+ assert.equal(height, 480);
+ assert.equal(x + width / 2, gardenSize.width / 2);
+ assert.equal(y + height / 2, gardenSize.height / 2);
 });

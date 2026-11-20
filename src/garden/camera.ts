@@ -139,9 +139,14 @@ export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => vo
   const bounds = svg.getBoundingClientRect();
   if (!bounds.width || !bounds.height) return;
   if (bounds.width === viewport.width && bounds.height === viewport.height) return;
+  const isResetting = Boolean(resetTarget);
   cancelGesture();
   viewport = { width: bounds.width, height: bounds.height };
   camera = constrainCamera(camera, viewport);
+  if (isResetting) {
+   resetTarget = constrainCamera(initialCamera, viewport);
+   schedule();
+  }
   paint();
  }
 
@@ -217,6 +222,7 @@ export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => vo
  }
 
  function zoomBy(factor: number, anchor: Point) {
+  if (pointers.size) return;
   resetTarget = undefined;
   coasting = false;
   wheelZoom = { zoom: clampZoom((wheelZoom?.zoom ?? camera.zoom) * factor), anchor };
