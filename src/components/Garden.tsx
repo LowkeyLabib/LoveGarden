@@ -8,7 +8,7 @@ import StormScene from './StormScene';
 import { PixelSprite } from '../garden/PixelSprite';
 import {useCharacters} from '../garden/useCharacters';
 import {CharacterSprite} from '../garden/CharacterSprite';
-import {DecorationLights,PondLife} from '../garden/DecorationDetails';
+import {DecorationLights,PondLife,SceneryLife,MushroomFireflies} from '../garden/DecorationDetails';
 import {connectGardenCamera} from '../garden/camera';
 import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds, availablePondSpots, spotById } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
@@ -118,6 +118,11 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
   <rect className="dusk-veil" x="-1000" y="-1000" width="3000" height="3000" fill="#f3bc9b" opacity={cycle.day?Math.sin(lighting*Math.PI)*.14:0} pointerEvents="none"/>
   <rect className="night-veil" x="-1000" y="-1000" width="3000" height="3000" fill="#25334f" opacity={lighting*.46} pointerEvents="none"/>
   <g opacity={lighting} pointerEvents="none">{state.decorations.map(d=>{const p=decorSlots[d.slot];return p&&<DecorationLights key={d.inventory_id} kind={d.catalog_id} {...p}/>;})}</g>
+  <g opacity={lighting} pointerEvents="none">{state.decorations.filter(d=>d.catalog_id==='glowing-mushrooms').slice(0,5).map(d=>{const p=decorSlots[d.slot];return p&&<MushroomFireflies key={d.inventory_id} {...p}/>;})}</g>
+  <g pointerEvents="none">
+   {scenery.filter(s=>s.name==='cherry'||s.name==='birdhouse').slice(0,6).map((s,i)=><SceneryLife key={i} kind={s.name} {...s}/>)}
+   {state.decorations.filter(d=>['birdhouse','garden-birdhouse','cherry-blossom-tree'].includes(d.catalog_id)).slice(0,6).map(d=>{const p=decorSlots[d.slot];return p&&<SceneryLife key={d.inventory_id} kind={d.catalog_id} {...p}/>;})}
+  </g>
   <g opacity={lighting} pointerEvents="none">{lamps.map((p,i)=><g key={i}><circle cx={p.x+11} cy={p.y-32} r="29" fill="url(#lamp-light)"/><rect x={p.x+7} y={p.y-35} width="8" height="10" fill="#ffe6a1" className="pixel-glow"/></g>)}{cottages.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y})`}><circle cx="14" cy="-20" r="16" fill="url(#lamp-light)"/></g>)}{Array.from({length:12},(_,i)=><rect key={i} className="pixel-firefly" x={165+i*27} y={183+(i*37)%130} width="2" height="2" fill="#fff1ab" style={{animationDelay:`${-i*.7}s`}}/>)}</g>
   <g opacity={1-lighting*.75} pointerEvents="none">{[[569,160],[583,179],[555,170],[351,317],[371,320]].map(([x,y],i)=><g key={i} transform={`translate(${x} ${y})`}><path className="garden-petal" d="M0 0h3v1h-1v2H0Z" fill="#f6c6d0" style={{animationDelay:`${-i*3.3}s`}}/></g>)}</g>
   {placing&&decorSlots.map((p,i)=>!occupiedBays.has(i)&&p.capacity>=placingSize&&<g key={i} transform={`translate(${p.x} ${p.y})`} {...objectProps(`Place decoration in slot ${i+1}`,()=>onPlace(i))}><polygon points={diamond} className="placement-target"/><text className="slot-number" textAnchor="middle" y="4">{i+1}</text></g>)}

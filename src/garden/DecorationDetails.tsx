@@ -22,3 +22,19 @@ export const PondLife=memo(function PondLife({main=false}:{main?:boolean}){
   <path className="pond-glimmer" d="M-19-2h5m15 6h6m5-9h5" stroke="#c1e0c9" fill="none"/>
  </g>;
 });
+
+export const SceneryLife=memo(function SceneryLife({kind,x,y}:{kind:string;x:number;y:number}){
+ if(kind==='birdhouse'||kind==='garden-birdhouse')return <g transform={`translate(${x} ${y-33})`} pointerEvents="none" aria-hidden="true">
+  <g className="visiting-bird"><path d="M-5 1h3v-2h4l2 1h2v1H3L1 3h-4z" fill="#6d7a85"/><path d="M-2 0h3v2h-3z" fill="#c8c3a9"/></g>
+ </g>;
+ if(kind==='cherry'||kind==='cherry-blossom-tree')return <g transform={`translate(${x} ${y-42})`} pointerEvents="none" aria-hidden="true">
+  {[-11,10].map((dx,i)=><path key={dx} className="garden-petal" d={`M${dx} 0h3v1h-1v2h-2z`} fill="#f1b9c5" style={{animationDelay:`${-i*6-x%9}s`}}/>)}
+ </g>;
+ return null;
+});
+
+export function MushroomFireflies({x,y}:{x:number;y:number}){
+ return <g transform={`translate(${x} ${y-14})`} pointerEvents="none" aria-hidden="true">
+  {[-8,5,13].map((dx,i)=><rect key={dx} x={dx} y={-i*4} width="2" height="2" fill="#ffe4a7" className="pixel-firefly" style={{animationDelay:`${-i*2}s`}}/>)}
+ </g>;
+}

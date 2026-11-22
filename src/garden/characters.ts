@@ -49,6 +49,7 @@ export class WalkingMap{
 const actor=(person:Person,point:Point):Actor=>({person,point,direction:'se',pose:'idle',route:[],goal:'',queue:[],job:null,holdUntil:0,blocked:false});
 const stroll:Point[]=[{u:5.5,v:4.5},{u:11,v:4.5},{u:17,v:4.5},{u:17,v:12.5},{u:11,v:12.5},{u:5.5,v:12.5}];
 const wander:Record<Person,Point[]>={labib:[{u:5.5,v:7.5},{u:9,v:4.5},{u:5.5,v:12.5}],mehezad:[{u:17,v:11.5},{u:14,v:4.5},{u:11,v:12.5}]};
+const socialKinds=new Set(['garden-swing','picnic-spot','romantic-gazebo','rose-heart-arch','koi-pond']);
 /** Cosmetic actors: observe successful public changes, never call game mutations. */
 export class CharacterDirector{
  private actors=[actor('labib',{u:5.5,v:6.5}),actor('mehezad',{u:17,v:9.5})];
@@ -75,12 +76,16 @@ export class CharacterDirector{
    }
   }
   const cycle=Math.floor((now-state.epoch)/120_000),phase=((now-state.epoch)%120_000+120_000)%120_000/1000,benchUV=inverse(this.bench.x,this.bench.y);
+  const venues=phase>=76&&cycle%2!==0&&!this.storm?state.decorations.filter(d=>socialKinds.has(d.catalog_id)&&decorSlots[d.slot]).sort((a,b)=>a.slot-b.slot):[];
+  // Alternate special visits with the original routine, and rotate through the available venues.
+  const visiting=phase>=76&&cycle>0&&cycle%2!==0&&!this.storm;
+  const venue=visiting?venues[Math.floor(cycle/2)%(venues.length+1)]:undefined;
   const poses:CharacterPose[]=this.actors.filter(a=>!this.storm||a.person==='labib').map((a,index)=>{
    const offset=a.person==='labib'?-.5:.5;
    if(reduced){a.queue=[];a.job=null;const p=this.storm?iso(10,10):iso(9+offset,12.5);return {person:a.person,pose:this.storm?'sad':'idle',direction:'se',frame:0,...p,depth:p.y,hearts:state.rainbowMode&&!this.storm};}
    if(a.job&&!state.seeds.some(s=>s.id===a.job!.seedId&&isActiveFlower(s,now))){a.job=null;a.goal='';a.holdUntil=0;}
    if(!a.job&&a.queue.length){a.job=a.queue.shift()!;a.goal='';a.holdUntil=0;}
-   let target:Point,goal:string,rest:Pose='idle';
+   let target:Point,goal:string,rest:Pose='idle',seat:Point|undefined;
    if(this.storm){target={u:10,v:10};goal='sad';rest='sad';}
    else if(a.job&&spotById.has(a.job.spot)){
     const s=spotById.get(a.job.spot)!;
@@ -89,23 +94,34 @@ export class CharacterDirector{
     }else target={u:s.u,v:s.v+('pondSlot' in s?(s.v<11.2?-1.8:1.8):1)};
     goal=a.job.key;rest=a.job.kind;
    }
+   else if(visiting){
+    const bay=venue?decorSlots[venue.slot]:null;
+    const kind=venue?.catalog_id;
+    target=bay?{u:bay.u+offset,v:bay.v+decorationRadius(kind!)+.5}:{u:-2+offset,v:15.8};
+    goal=`visit-${cycle}-${venue?.slot??'main-pond'}`;
+    if(bay&&(kind==='garden-swing'||kind==='picnic-spot')){
+     seat=inverse(bay.x+offset*15,bay.y+(kind==='garden-swing'?4:5));
+     rest='sit';
+    }
+   }
    else if(phase>=80){target={u:benchUV.u+offset,v:benchUV.v+1.5};goal=`bench-${cycle}`;rest=a.person==='labib'&&phase>=100&&phase<108&&cycle%2===0?'smoke':'sit';}
    else if(phase>=40||state.rainbowMode){const segment=Math.floor((phase>=40?phase-40:phase)/10)%stroll.length;const p=stroll[segment];target={u:p.u+offset,v:p.v};goal=`together-${cycle}-${phase>=40?1:0}-${segment}`;}
    else{const segment=Math.floor(phase/14);target=wander[a.person][segment%3];goal=`wander-${cycle}-${segment}`;}
-   if(goal!==a.goal){a.goal=goal;const path=this.map.path(a.point,target);a.route=path??[];a.blocked=path===null;a.holdUntil=0;if(a.blocked&&a.job){a.job=null;a.goal='';}}
+   if(goal!==a.goal){a.goal=goal;const path=this.map.path(a.point,target);a.route=path??[];if(path&&seat)a.route.push(seat);a.blocked=path===null;a.holdUntil=0;if(a.blocked&&a.job){a.job=null;a.goal='';}}
    let remaining=Math.min(.2,Math.max(0,elapsed))*34;
    while(a.route.length&&remaining>0){const p=a.route[0],d=distance(a.point,p);if(d>.01)a.direction=directionTo(a.point,p);if(d<=remaining){a.point=p;a.route.shift();remaining-=d;}else{const t=remaining/d;a.point={u:a.point.u+(p.u-a.point.u)*t,v:a.point.v+(p.v-a.point.v)*t};remaining=0;}}
-   a.pose=a.route.length?'walk':a.blocked||distance(a.point,target)>28?'idle':rest;
+   a.pose=a.route.length?'walk':a.blocked||distance(a.point,seat??target)>28?'idle':rest;
    if(!a.route.length&&a.job&&!a.blocked){
     const s=spotById.get(a.job.spot);if(s)a.direction=directionTo(a.point,s);
     if(!a.holdUntil)a.holdUntil=now+4200;
     if(now>=a.holdUntil){a.job=null;a.goal='';a.holdUntil=0;a.pose='idle';}
    }
    let p=iso(a.point.u,a.point.v),depth=p.y;
-   if(a.pose==='sit'||a.pose==='smoke'){
+   if((a.pose==='sit'||a.pose==='smoke')&&a.goal.startsWith('bench-')){
     // Feet are aligned to the existing isometric seat; sort just after the bench.
     p={x:this.bench.x+(a.person==='labib'?-14:7),y:this.bench.y+(a.person==='labib'?-5:5)};depth=this.bench.y+1+index*.1;a.direction='sw';
    }
+   if(seat&&a.pose==='sit')a.direction='se';
    if(a.pose==='sad')a.direction='se';
    const speed=a.pose==='walk'?150:a.pose==='smoke'?850:280;
    return {person:a.person,pose:a.pose,direction:a.direction,frame:a.pose==='idle'||a.pose==='sad'||a.pose==='sit'?0:Math.floor(now/speed)%4,...p,depth,hearts:state.rainbowMode&&!this.storm};
