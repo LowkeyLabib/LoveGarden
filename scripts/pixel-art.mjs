@@ -4,6 +4,7 @@
  */
 import sharp from 'sharp';
 import { writeFile, mkdir } from 'node:fs/promises';
+import { grid, gardenBounds, groundPoint, iso, pondRadius, decorSlots } from '../src/garden/world.ts';
 const P={ink:'#343d35',dark:'#3e5840',grass:'#86af6c',grassLight:'#b5cc85',grassDark:'#729858',leaf:'#67965c',leafLight:'#a2c379',leafDark:'#3f6c53',wood:'#a77548',woodLight:'#d6a362',woodDark:'#694e3d',bark:'#805b3e',cream:'#f8e5b0',rose:'#d77388',roseLight:'#f3acac',roseDark:'#984f70',gold:'#efc15d',water:'#71b8b1',waterLight:'#c0e2cc',waterDark:'#4b8c99',stone:'#b7b9a0',stoneDark:'#747e76'};
 function color(s){if(typeof s==='string'&&s.startsWith('#'))return [...s.slice(1).match(/../g).map(x=>parseInt(x,16)),255];return s;}
 class Pixels{
@@ -152,7 +153,73 @@ for(const name of ['gift-box','gift-special']){const c=sprites[name].c;for(const
 let ax=0,ay=0,rowH=0;const atlasWidth=512,frames={};for(const [name,{c,anchorX,anchorY}]of Object.entries(sprites)){if(ax+c.w+2>atlasWidth){ax=0;ay+=rowH+2;rowH=0;}frames[name]={x:ax,y:ay,w:c.w,h:c.h,anchorX,anchorY};ax+=c.w+2;rowH=Math.max(rowH,c.h);}
 const atlas=new Pixels(atlasWidth,ay+rowH);for(const[name,{c}]of Object.entries(sprites)){const f=frames[name];atlas.paste(c,f.x,f.y);}
 await mkdir('public/art',{recursive:true});await mkdir('src/garden',{recursive:true});
-await writeFile('public/art/atlas.png',await atlas.png());await writeFile('public/art/terrain.png',await terrain.png());await writeFile('src/garden/atlas.json',JSON.stringify({width:atlas.w,height:atlas.h,frames},null,2)+'\n');
+await writeFile('public/art/atlas.png',await atlas.png());
+await writeFile('public/art/terrain.png',await expandedTerrain().png());
+await writeFile('src/garden/atlas.json',JSON.stringify({width:atlas.w,height:atlas.h,frames},null,2)+'\n');
 await writeFile('public/art/LICENSE.txt','LoveGarden pixel-art assets\nOriginal artwork authored for this project. No third-party game art or fonts are included.\nThe source artwork is reproducible with scripts/pixel-art.mjs.\n');
 console.log(`Created ${Object.keys(frames).length} original sprites and the isometric terrain.`);
+
+function expandedTerrain(){
+ const bounds=gardenBounds,c=new Pixels(bounds.width,bounds.height);
+ const at=(u,v)=>{const p=iso(u,v);return [p.x-bounds.x,p.y-bounds.y];};
+ const corners=[at(grid.minU,grid.minV),at(grid.maxU,grid.minV),at(grid.maxU,grid.maxV),at(grid.minU,grid.maxV)];
+ const shift=(p,x,y)=>[p[0]+x,p[1]+y];
+ c.poly(corners.map(p=>shift(p,8,29)),[36,56,44,34]);
+ for(const [i,j,col,strata] of [[3,2,'#785b43','#a07b51'],[2,1,'#574c3b','#766649']]){
+  const a=corners[i],b=corners[j];
+  c.poly([a,b,shift(b,0,28),shift(a,0,28)],col);
+  c.line(...shift(a,0,11),...shift(b,0,11),strata,2);
+  for(let n=0;n<125;n++){const t=rand();c.rect(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t+6+rand()*15,2+rand()*5,1+rand()*3,strata);}
+ }
+ c.poly(corners,'#89ac6e');
+ const path=(u,v)=>u===4&&v>=-8&&v<3 || v===-2&&u>=-8&&u<=26 ||
+  u===21&&v>=-2&&v<=20 || v===10&&u>=18&&u<=27 ||
+  v===20&&u>=-5&&u<=26 || u===6&&v>=17&&v<=24 ||
+  u===-8&&v>=-2&&v<=19 || v===6&&u>=-8&&u<=0 || v===16&&u>=-8&&u<=0;
+ for(let u=grid.minU;u<grid.maxU;u++)for(let v=grid.minV;v<grid.maxV;v++){
+  if(u>=0&&u<20&&v>=0&&v<18)continue;
+  const [x,y]=at(u+.5,v+.5),stone=path(u,v);
+  const clearing=decorSlots.some(p=>p.capacity&&Math.abs(p.u-u-.5)<1.6&&Math.abs(p.v-v-.5)<1.6);
+  const patch=.5+.23*Math.sin(u*.63+v*.31)+.22*Math.cos(v*.79-u*.14);
+  diamond(c,x,y,16,8,stone?'#c4b083':clearing?blend('#92ab6b','#b0bf83',patch):blend('#78a367','#a0bc78',patch));
+  if(stone){
+   c.poly([[x-14,y],[x-1,y-6],[x+13,y],[x+1,y+5]],blend('#c6b08b','#e1d2a9',rand()));
+   c.line(x-11,y-1,x-1,y-6,'#e2d2ad');c.line(x+1,y+5,x+11,y,'#b69e7a');
+  }else{
+   for(let k=0;k<(clearing?6:12);k++){
+    const dx=Math.floor(rand()*28)-14,dy=Math.floor(rand()*12)-6;
+    if(Math.abs(dx)/16+Math.abs(dy)/8<.85)c.rect(x+dx,y+dy,k%3===0?2:1,1,k%3===0?'#b3cc86':'#739c60');
+   }
+   if(!clearing&&rand()<.17)tuft(c,x+2,y-1);
+   if(!clearing&&rand()<.08){c.rect(x-3,y-1,2,2,'#f4e4aa');c.dot(x+1,y-3,'#e3adb2');}
+  }
+  if(u===grid.maxU-1||v===grid.maxV-1){
+   c.line(x-15,y+1,x,y+8,'#547b50',2);c.line(x,y+8,x+15,y,'#547b50',2);
+  }
+ }
+ // Keep the original ground pixels. Its old cutaway is outside this mask.
+ for(let y=64;y<369;y++)for(let x=32;x<=640;x++){
+  const {u,v}=groundPoint(x,y);
+  if(u<0||u>20||v<0||v>18)continue;
+  const i=(y*terrain.w+x)*4;
+  if(terrain.data[i+3])c.dot(x-bounds.x,y-bounds.y,[...terrain.data.subarray(i,i+4)]);
+ }
+ // The sheltered west inlet joins the old pond. Texture remains mostly open water.
+ for(let y=62;y<231;y++)for(let x=-38;x<298;x++){
+  const {u,v}=groundPoint(x,y),r=pondRadius(u,v);
+  if(r>1.10)continue;
+  const shallow=Math.max(0,(r-.43)/.57);
+  let ink=r>1?(r>1.065?'#759664':'#a5b288'):blend('#4e8b9a','#91c8b8',shallow);
+  if(r<.9&&Math.sin(x*.18+y*.59)>.95)ink=blend('#69a6a8','#a6cfc2',shallow*.65);
+  c.dot(x-bounds.x,y-bounds.y,ink);
+ }
+ for(const [u,v] of [[-6.3,11.1],[-5.5,9],[-4.1,14],[-1,14.5],[.8,8.1],[4.6,9.6],[4.8,12.3]]){
+  const [x,y]=at(u,v);c.oval(x,y,5,2,'#71936e');c.oval(x-1,y-1,4,2,'#b6bda0');c.rect(x-3,y-2,3,1,'#e0d7b1');
+ }
+ for(const [u,v] of [[2,10],[3.5,11],[3,12.4],[1.8,11.4]]){
+  const [x,y]=at(u,v);c.oval(x,y,6,3,'#467f5a');c.oval(x-1,y-1,5,2,'#86b56c');
+  c.poly([[x,y],[x+6,y],[x+5,y+3]],P.water);c.line(x-3,y-2,x+1,y-2,'#b7d38d');if(u===2)blossom(c,x,y-3,'cosmos');
+ }
+ return c;
+}
 

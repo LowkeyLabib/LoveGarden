@@ -8,8 +8,8 @@ import StormScene from './StormScene';
 import { PixelSprite } from '../garden/PixelSprite';
 import {useCharacters} from '../garden/useCharacters';
 import {CharacterSprite} from '../garden/CharacterSprite';
-import {connectGardenCamera, gardenSize} from '../garden/camera';
-import { iso, spots, hidingPlaces, decorSlots, scenery } from '../garden/world';
+import {connectGardenCamera} from '../garden/camera';
+import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
 
 type Props={state:GardenState;now:number;onSpot:(n:number)=>void;onSeed:(s:Seed)=>void;onGift:(g:Gift)=>void;onPlace:(slot:number)=>void;placing:string|null};
@@ -85,10 +85,10 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  <svg ref={ref} className="garden-canvas" aria-label={state.angryMode?"Angry Mode: an empty garden under gentle rain. All memories are preserved.":"Interactive isometric LoveGarden. Drag to explore; pinch, scroll, or use buttons to zoom."}>
   <title>Mehezad and Labib's LoveGarden</title>
   <defs><radialGradient id="lamp-light"><stop stopColor="#ffda78" stopOpacity=".5"/><stop offset="1" stopColor="#ffd879" stopOpacity="0"/></radialGradient></defs>
-  <rect x={-gardenSize.width} y={-gardenSize.height} width={gardenSize.width * 3} height={gardenSize.height * 3} fill="transparent" aria-hidden="true"/>
+  <rect x={gardenBounds.x-1600} y={gardenBounds.y-1000} width={4480} height={2728} fill="transparent" aria-hidden="true"/>
   {state.angryMode?<StormScene>{characters.map(character=><CharacterSprite key={character.person} character={character} layers={wardrobes[character.person]}/>)}</StormScene>:<>
   {state.rainbowMode&&<image href="/art/rainbow.png" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>}
-  <image href="/art/terrain.png" x="0" y="0" width={gardenSize.width} height={gardenSize.height} style={{imageRendering:'pixelated'}} pointerEvents="none"/>
+  <image href="/art/terrain.png" {...gardenBounds} style={{imageRendering:'pixelated'}} pointerEvents="none"/>
   <g pointerEvents="none" opacity={.8-lighting*.5}>{[[2.3,10],[3.2,11.5],[4.4,11.5],[3,12.4]].map(([u,v],i)=>{const p=iso(u,v);return <g key={i} transform={`translate(${p.x} ${p.y})`}><path className="pond-glimmer" d="M-6 0h4m3 1h6m-2 2h3" fill="none" stroke="#d2e6ce" strokeWidth="1" style={{animationDelay:`${-i*1.3}s`}}/></g>;})}</g>
   {spots.map(p=><PixelSprite key={p.id} name="plot" x={p.x} y={p.y}/>)}
   {objects.map(o=><g key={o.key}>{o.node}</g>)}

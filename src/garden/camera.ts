@@ -1,20 +1,24 @@
+import {gardenBounds} from './world.ts';
 type Point = { x: number; y: number };
 type Size = { width: number; height: number };
 type Camera = Point & { zoom: number };
 type Pointer = Point & { capture: Element };
 
-export const gardenSize = { width: 720, height: 450 };
-const initialCamera = { x: gardenSize.width / 2, y: gardenSize.height / 2, zoom: 1 };
+export const gardenSize = gardenBounds;
+const initialCamera = { x: 360, y: 225, zoom: 1 };
 const baseHeight = 480;
 const dragThreshold = 8;
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
-const clampZoom = (zoom: number) => clamp(zoom, 0.75, 2.5);
+export const minimumZoom = (viewport: Size) => Math.max(0.45, Math.min(
+ 0.75, baseHeight / Math.max(gardenBounds.height, gardenBounds.width * viewport.height / viewport.width),
+));
+const clampZoom = (zoom: number, viewport: Size) => clamp(zoom, minimumZoom(viewport), 2.5);
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
 const midpoint = (a: Point, b: Point) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
 const unitsPerPixel = (camera: Camera, viewport: Size) => baseHeight / (camera.zoom * viewport.height);
 
 export function constrainCamera(camera: Camera, viewport: Size): Camera {
- const zoom = clampZoom(camera.zoom);
+ const zoom = clampZoom(camera.zoom, viewport);
  const scale = unitsPerPixel({ ...camera, zoom }, viewport);
  const boundAxis = (center: number, world: number, pixels: number) => {
   // A small screen-space gutter makes edges reachable around the garden controls.
@@ -22,11 +26,11 @@ export function constrainCamera(camera: Camera, viewport: Size): Camera {
   const minimum = Math.min(world / 2, pixels * scale / 2 - gutter);
   return clamp(center, minimum, world - minimum);
  };
- return { x: boundAxis(camera.x, gardenSize.width, viewport.width), y: boundAxis(camera.y, gardenSize.height, viewport.height), zoom };
+ return { x: gardenBounds.x+boundAxis(camera.x-gardenBounds.x, gardenBounds.width, viewport.width), y: gardenBounds.y+boundAxis(camera.y-gardenBounds.y, gardenBounds.height, viewport.height), zoom };
 }
 
 export function moveCamera(camera: Camera, viewport: Size, from: Point, to: Point, zoom = camera.zoom): Camera {
- const nextZoom = clampZoom(zoom);
+ const nextZoom = clampZoom(zoom,viewport);
  const oldScale = unitsPerPixel(camera, viewport);
  const newScale = unitsPerPixel({ ...camera, zoom: nextZoom }, viewport);
  const cx = viewport.width / 2;
@@ -225,7 +229,7 @@ export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => vo
   if (pointers.size) return;
   resetTarget = undefined;
   coasting = false;
-  wheelZoom = { zoom: clampZoom((wheelZoom?.zoom ?? camera.zoom) * factor), anchor };
+  wheelZoom = { zoom: clampZoom((wheelZoom?.zoom ?? camera.zoom) * factor,viewport), anchor };
   schedule();
  }
 

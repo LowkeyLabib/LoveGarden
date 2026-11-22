@@ -1,21 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { connectGardenCamera, constrainCamera, gardenSize, moveCamera } from '../src/garden/camera.ts';
+import { connectGardenCamera, constrainCamera, gardenSize, minimumZoom, moveCamera } from '../src/garden/camera.ts';
 import { decorSlots, hidingPlaces, spots } from '../src/garden/world.ts';
 
 const portrait = { width: 390, height: 650 };
 
 test('viewport and zoom bounds allow both world edges in each axis', () => {
  for (const viewport of [portrait, { width: 650, height: 390 }, { width: 1400, height: 540 }]) {
-  for (const zoom of [0.75, 1, 2.5]) {
+  for (const zoom of [minimumZoom(viewport), 1, 2.5]) {
    const low = constrainCamera({ x: -10000, y: -10000, zoom }, viewport);
    const high = constrainCamera({ x: 10000, y: 10000, zoom }, viewport);
    const halfHeight = 240 / zoom;
    const halfWidth = halfHeight * viewport.width / viewport.height;
-   assert.ok(low.x - halfWidth <= 0 && low.y - halfHeight <= 0);
-   assert.ok(high.x + halfWidth >= gardenSize.width && high.y + halfHeight >= gardenSize.height);
-   assert.ok(low.x >= 0 && high.x <= gardenSize.width);
-   assert.ok(low.y >= 0 && high.y <= gardenSize.height);
+   assert.ok(low.x - halfWidth <= gardenSize.x && low.y - halfHeight <= gardenSize.y);
+   assert.ok(high.x + halfWidth >= gardenSize.x+gardenSize.width && high.y + halfHeight >= gardenSize.y+gardenSize.height);
    for (const point of [...spots, ...hidingPlaces, ...decorSlots]) {
     const camera = constrainCamera({ ...point, zoom }, viewport);
     assert.ok(Math.abs(point.x - camera.x) < halfWidth);
@@ -159,6 +157,6 @@ test('camera accumulates buffered pointer moves and only lets genuine taps throu
  assert.equal(frames.size, 0);
  const [x, y, width, height] = surface.viewBox;
  assert.equal(height, 480);
- assert.equal(x + width / 2, gardenSize.width / 2);
- assert.equal(y + height / 2, gardenSize.height / 2);
+ assert.equal(x + width / 2, 360);
+ assert.equal(y + height / 2, 225);
 });
