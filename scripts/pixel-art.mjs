@@ -149,6 +149,104 @@ for(const name of ['gift-box','gift-special']){const c=sprites[name].c;for(const
 {const c=sprites['cottage'].c;c.line(54,83,74,73,'#7a8d56',2);c.line(55,81,74,72,'#99ae70',2);for(const[x,y]of[[56,79],[64,75],[72,71]]){c.rect(x,y,2,2,'#f2bbc0');c.dot(x,y-1,'#fff0ce');}c.line(18,74,24,77,'#a0ac76');}
 {const c=sprites['fountain'].c;c.line(12,46,18,48,'#e5e5c3');c.line(37,45,48,42,'#b8d9cb');c.rect(30,31,1,9,'#d8e5d5');}
 
+function heartStone(c,x,y,r){
+ c.poly([[x-r,y],[x-r+1,y-3],[x-3,y-4],[x,y-2],[x+3,y-4],[x+r,y-3],[x+r,y],[x,y+5]],'#a86c78');
+ c.poly([[x-r+1,y-1],[x-r+2,y-3],[x-3,y-3],[x,y-1],[x+3,y-3],[x+r-1,y-2],[x+r-1,y],[x,y+3]],'#dda0a2');
+ c.line(x-r+3,y-2,x-2,y-2,'#f3c4b7');
+}
+sprite('garden-birdhouse',38,51,c=>{
+ shadow(c,18,44,9,4);c.rect(16,15,5,30,P.woodDark);c.rect(16,18,2,25,P.woodLight);
+ c.rect(9,13,18,16,'#79aaa1');c.rect(23,14,4,15,'#4c7770');c.rect(10,20,2,7,'#94c0ad');
+ c.poly([[7,15],[18,5],[29,15],[26,17],[18,10],[10,17]],'#a76158');
+ c.line(8,14,18,5,'#d99179',2);c.oval(17,19,3,3,'#3e5147');c.rect(15,24,7,2,P.woodLight);
+},18,44);
+sprite('heart-stepping-stones',48,32,c=>{
+ for(const [x,y,r] of [[11,20,7],[23,14,8],[35,8,6]]){shadow(c,x-5,y,r,4);heartStone(c,x,y,r);}
+},23,15);
+sprite('glowing-mushrooms',44,36,c=>{
+ shadow(c,21,29,13,5);
+ for(const [x,y,r,m,h] of [[11,22,6,'#b17bb0','#edd3dc'],[22,16,9,'#d58e63','#ffe5a4'],[32,23,6,'#9780ab','#e6c3d6']]){
+  c.rect(x-2,y,4,9,'#c6b38b');c.rect(x-2,y,2,8,'#eee1bc');
+  c.oval(x,y,r,4,'#855f65');c.oval(x-1,y-2,r-1,4,m);c.rect(x-3,y-4,3,2,h);c.dot(x+2,y-3,h);
+ }
+},22,28);
+sprite('flower-cart',52,43,c=>{
+ shadow(c,25,36,17,5);c.line(31,25,48,18,P.woodDark,3);c.line(31,24,47,17,P.woodLight);
+ c.poly([[7,20],[29,15],[39,22],[16,29]],P.woodLight);c.poly([[7,20],[16,27],[16,33],[7,27]],P.woodDark);
+ c.poly([[16,27],[39,22],[39,28],[16,34]],'#a87552');c.line(19,28,36,24,'#d4a275');
+ c.oval(23,33,6,6,'#5d4a3e');c.oval(23,33,4,4,'#bf935b');c.dot(23,33,P.cream);
+ for(const [x,y,t] of [[13,18,'daisy'],[22,16,'rose'],[31,19,'lavender'],[19,22,'cosmos']])blossom(c,x,y,t);
+},25,35);
+sprite('picnic-spot',69,46,c=>{
+ shadow(c,30,34,24,8);diamond(c,33,27,29,13,'#b97982');diamond(c,33,25,27,12,'#f1c8b7');
+ for(let i=-16;i<=16;i+=8){c.line(14+i/2,25-i/4,37+i/2,35-i/4,'#ce8f96',2);c.line(33+i/2,14+i/4,55+i/2,25+i/4,'#db9ea3',2);}
+ c.oval(39,25,8,3,'#b48451');c.rect(32,20,14,6,'#c69b66');c.line(34,20,34,16,P.woodDark);c.line(34,16,43,16,P.woodDark);c.line(43,16,43,20,P.woodDark);
+ c.oval(24,28,5,3,'#fff0cd');c.rect(23,26,3,2,P.rose);c.oval(36,32,5,3,'#fff0cd');
+},33,28);
+sprite('garden-swing',69,72,c=>{
+ shadow(c,32,63,23,8);c.line(15,62,23,18,P.woodDark,4);c.line(55,60,47,19,P.woodDark,4);
+ c.line(17,59,24,18,P.woodLight,2);c.line(52,55,46,18,'#c29465',2);
+ c.line(19,16,50,16,P.woodDark,5);c.line(20,16,48,16,P.woodLight,2);
+ c.line(25,20,25,48,'#b9a486',2);c.line(44,20,44,48,'#95816b',2);
+ c.poly([[22,46],[42,46],[48,50],[28,52]],'#d3a570');c.line(28,52,47,50,P.woodDark,2);
+ c.rect(29,45,12,4,'#b8798c');c.line(30,45,39,45,'#ecc3c4');
+},34,57);
+sprite('koi-pond',76,52,c=>{
+ shadow(c,37,31,26,10);c.oval(37,26,33,17,'#687d72');c.oval(37,24,32,16,'#b2b89b');
+ c.oval(37,22,28,13,'#7ea69e');c.oval(37,22,25,10,'#508a91');c.line(19,20,28,18,'#9ac6ad');c.line(45,28,54,26,'#83b6a6');
+ for(const [x,y] of [[11,24],[17,32],[26,36],[50,35],[58,31],[65,24],[55,13],[44,10],[26,11],[17,16]]){
+  c.oval(x,y,4,2,'#8e9983');c.oval(x-1,y-1,3,1,'#d5d0ad');
+ }
+},37,25);
+sprite('cherry-blossom-tree',86,91,c=>{
+ shadow(c,41,80,26,9);c.line(41,80,41,41,P.woodDark,7);c.line(42,77,37,42,'#996b59',3);
+ c.line(43,66,61,50,P.woodDark,4);c.line(41,65,26,46,'#a77663',4);
+ for(const [x,y,r] of [[25,42,15],[59,42,16],[43,26,22],[21,32,15],[64,32,14],[43,44,20],[39,22,17]]){
+  c.oval(x,y,r,12,'#a27287');c.oval(x-1,y-2,r-1,11,'#d496ab');c.oval(x-3,y-5,r-4,8,'#edb9c3');c.line(x-7,y-8,x-1,y-9,'#ffdccf',2);
+ }
+ for(const [x,y] of [[23,71],[55,76],[62,72],[34,82]])c.rect(x,y,2,1,'#e3a8b4');
+},43,80);
+sprite('rose-heart-arch',88,91,c=>{
+ shadow(c,42,80,30,8);
+ for(const offset of [0,1]){
+  const path=[[17,80],[17,52],[12,43],[12,28],[20,19],[32,18],[43,31],[54,18],[66,19],[74,28],[74,43],[69,52],[69,80]];
+  for(let i=1;i<path.length;i++){const [x,y]=path[i-1], [xx,yy]=path[i];c.line(x+offset,y,xx+offset,yy,offset?'#73935d':'#46674f',offset?3:5);}
+ }
+ for(const [x,y] of [[18,24],[29,18],[37,25],[52,23],[64,19],[72,28],[69,48],[18,52],[19,65],[67,64]])blossom(c,x,y,'rose');
+},43,80);
+sprite('romantic-gazebo',108,103,c=>{
+ shadow(c,53,90,39,9);diamond(c,54,82,42,17,'#a9987e');diamond(c,54,79,40,16,'#e2cc9e');
+ c.rect(36,64,37,4,'#a57e5f');c.rect(37,62,35,3,'#c39b72');
+ for(const [x,y] of [[19,77],[84,77],[37,88],[69,88]]){c.rect(x,42,4,y-42,'#916950');c.rect(x,43,1,y-42,'#ecc593');}
+ c.poly([[8,49],[29,35],[54,12],[79,35],[100,49],[54,63]],'#8d627d');
+ c.poly([[8,49],[54,13],[54,58]],'#bc8495');c.poly([[54,13],[100,49],[54,58]],'#a16f8e');
+ c.line(10,49,53,59,'#e4b4a8',2);c.line(54,59,97,49,'#b78b9c',2);
+ for(const x of [20,84]){c.rect(x,53,5,8,'#835a4d');c.rect(x+1,54,3,5,'#edbf77');}
+},54,86);
+sprite('moonlit-bridge',100,63,c=>{
+ shadow(c,48,50,37,9);c.oval(50,45,40,11,'#769293');c.line(16,45,35,50,'#96b6a5',2);
+ const arch=[24,19,16,15,16,19,24];
+ for(let i=0;i<arch.length;i++){
+  const x=11+i*11,y=arch[i]+13;
+  c.poly([[x,y],[x+11,y],[x+20,y+9],[x+9,y+10]],i%2?'#c6a278':'#d8b78b');
+  c.line(x+9,y+10,x+20,y+9,'#805b52',2);
+ }
+ c.line(13,33,43,21,P.woodDark,2);c.line(43,21,77,33,P.woodDark,2);
+ for(const [x,y] of [[13,36],[78,36],[22,44],[87,44]]){c.rect(x,y-13,3,14,'#83675c');c.rect(x-1,y-15,5,5,'#f0d38f');c.line(x-2,y-16,x+4,y-16,'#65525b');}
+},50,45);
+sprite('fairy-cottage',107,105,c=>{
+ shadow(c,52,91,37,8);
+ c.poly([[19,49],[50,59],[50,91],[19,80]],'#e5c292');c.poly([[50,59],[91,46],[91,77],[50,91]],'#b9997e');
+ c.poly([[12,50],[28,22],[67,11],[99,45],[50,65]],'#704e67');
+ c.poly([[14,49],[29,21],[67,11],[50,35]],'#ba7987');c.poly([[29,21],[50,35],[50,61],[14,49]],'#a76979');
+ c.poly([[50,35],[67,11],[97,44],[50,61]],'#986478');
+ for(let y=24;y<47;y+=6)c.line(29,y,45,y+7,'#d09395');
+ c.rect(73,21,7,15,'#80665c');c.rect(73,21,7,3,'#c7a394');
+ c.oval(39,71,6,8,'#765a52');c.rect(33,71,13,15,'#765a52');c.dot(43,76,P.gold);
+ c.rect(23,62,7,8,'#8c6558');c.rect(24,63,5,6,'#ffe0a0');c.rect(66,63,9,9,'#805e57');c.rect(67,64,7,7,'#f2c986');
+ c.line(19, 80,27,76,'#6d9162',2);c.line(76,82,89,77,'#739762',2);
+},52,86);
+
 // Packing uses integer coordinates; every sprite has an explicit foot anchor for depth sorting.
 let ax=0,ay=0,rowH=0;const atlasWidth=512,frames={};for(const [name,{c,anchorX,anchorY}]of Object.entries(sprites)){if(ax+c.w+2>atlasWidth){ax=0;ay+=rowH+2;rowH=0;}frames[name]={x:ax,y:ay,w:c.w,h:c.h,anchorX,anchorY};ax+=c.w+2;rowH=Math.max(rowH,c.h);}
 const atlas=new Pixels(atlasWidth,ay+rowH);for(const[name,{c}]of Object.entries(sprites)){const f=frames[name];atlas.paste(c,f.x,f.y);}

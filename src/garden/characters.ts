@@ -1,5 +1,5 @@
 import type {GardenState,Seed} from '../lib/types';
-import {iso,groundPoint,scenery,decorSlots,grid,pondRadius,spots} from './world.ts';
+import {iso,groundPoint,scenery,decorSlots,grid,pondRadius,spots,decorationRadius} from './world.ts';
 import {isActiveFlower} from '../lib/flowers.ts';
 export type Person='labib'|'mehezad';
 export type Pose='idle'|'walk'|'sit'|'plant'|'water'|'sad'|'smoke';
@@ -18,7 +18,7 @@ export class WalkingMap{
  private storm:boolean;
  constructor(decorations:GardenState['decorations'],storm=false){
   this.storm=storm;
-  this.obstacles=[...scenery.filter(s=>/oak|pine|willow|cherry|cottage|sign|bench|bush|hydrangea|rock/.test(s.name)).map(s=>({point:inverse(s.x,s.y),radius:size(s.name)})),...decorations.flatMap(d=>{const p=decorSlots[d.slot];return p?[{point:inverse(p.x,p.y),radius:size(d.catalog_id)}]:[];})];
+  this.obstacles=[...scenery.filter(s=>/oak|pine|willow|cherry|cottage|sign|bench|bush|hydrangea|rock/.test(s.name)).map(s=>({point:inverse(s.x,s.y),radius:size(s.name)})),...decorations.flatMap(d=>{const p=decorSlots[d.slot];return p?[{point:p,radius:decorationRadius(d.catalog_id)||size(d.catalog_id)}]:[];})];
  }
  canWalk(p:Point){
   if(p.u<walkBounds.minU||p.u>walkBounds.maxU||p.v<walkBounds.minV||p.v>walkBounds.maxV)return false;

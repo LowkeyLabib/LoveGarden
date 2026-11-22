@@ -22,6 +22,22 @@ const newBays=[
  [-5,23,3],[-6,18,2],[-7,14,1],[-8,7,1],[-3,-2,1],[18,-2,1],
 ];
 export const decorSlots=[...originalBays,...newBays].map(([u,v,capacity=0])=>({u,v,capacity,...iso(u,v)}));
+const decorationSizes: Record<string,number> = {
+ 'garden-birdhouse':1,
+ 'heart-stepping-stones':1,
+ 'glowing-mushrooms':1,
+ 'flower-cart':1,
+ 'picnic-spot':2,
+ 'garden-swing':2,
+ 'koi-pond':2,
+ 'cherry-blossom-tree':2,
+ 'rose-heart-arch':3,
+ 'romantic-gazebo':3,
+ 'moonlit-bridge':3,
+ 'fairy-cottage':3,
+};
+export const footprintRadius=(size:number)=>[0,0.65,1.25,1.7][size]??0;
+export const decorationRadius=(catalogId:string)=>footprintRadius(decorationSizes[catalogId]??0);
 export const pondRadius=(u:number,v:number)=>{
  const original=Math.hypot((u-3.1)/2.25,(v-11.2)/2.9);
  const west=Math.hypot((u+1.7)/5.8,(v-11.15)/3.35);

@@ -1,6 +1,6 @@
 {
   "width": 512,
-  "height": 440,
+  "height": 640,
   "frames": {
     "plot": {
       "x": 0,
@@ -449,6 +449,102 @@
       "h": 65,
       "anchorX": 70,
       "anchorY": 58
+    },
+    "garden-birdhouse": {
+      "x": 0,
+      "y": 442,
+      "w": 38,
+      "h": 51,
+      "anchorX": 18,
+      "anchorY": 44
+    },
+    "heart-stepping-stones": {
+      "x": 40,
+      "y": 442,
+      "w": 48,
+      "h": 32,
+      "anchorX": 23,
+      "anchorY": 15
+    },
+    "glowing-mushrooms": {
+      "x": 90,
+      "y": 442,
+      "w": 44,
+      "h": 36,
+      "anchorX": 22,
+      "anchorY": 28
+    },
+    "flower-cart": {
+      "x": 136,
+      "y": 442,
+      "w": 52,
+      "h": 43,
+      "anchorX": 25,
+      "anchorY": 35
+    },
+    "picnic-spot": {
+      "x": 190,
+      "y": 442,
+      "w": 69,
+      "h": 46,
+      "anchorX": 33,
+      "anchorY": 28
+    },
+    "garden-swing": {
+      "x": 261,
+      "y": 442,
+      "w": 69,
+      "h": 72,
+      "anchorX": 34,
+      "anchorY": 57
+    },
+    "koi-pond": {
+      "x": 332,
+      "y": 442,
+      "w": 76,
+      "h": 52,
+      "anchorX": 37,
+      "anchorY": 25
+    },
+    "cherry-blossom-tree": {
+      "x": 410,
+      "y": 442,
+      "w": 86,
+      "h": 91,
+      "anchorX": 43,
+      "anchorY": 80
+    },
+    "rose-heart-arch": {
+      "x": 0,
+      "y": 535,
+      "w": 88,
+      "h": 91,
+      "anchorX": 43,
+      "anchorY": 80
+    },
+    "romantic-gazebo": {
+      "x": 90,
+      "y": 535,
+      "w": 108,
+      "h": 103,
+      "anchorX": 54,
+      "anchorY": 86
+    },
+    "moonlit-bridge": {
+      "x": 200,
+      "y": 535,
+      "w": 100,
+      "h": 63,
+      "anchorX": 50,
+      "anchorY": 45
+    },
+    "fairy-cottage": {
+      "x": 302,
+      "y": 535,
+      "w": 107,
+      "h": 105,
+      "anchorX": 52,
+      "anchorY": 86
     }
   }
 }

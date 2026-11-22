@@ -29,6 +29,10 @@ label{font-size:12px;font-weight:600;color:#5e7355;margin-top:21px;margin-bottom
 .character-hearts{animation:character-love 3.4s steps(12,end) infinite;pointer-events:none}@keyframes character-love{0%{opacity:0;translate:0 3px}20%,65%{opacity:1}100%{opacity:0;translate:0 -13px}}@media(prefers-reduced-motion:reduce){.character-hearts{animation:none;opacity:.85}}
 
 /* Camera HUD */
+.koi-drift{animation:koi-drift 14s steps(24,end) infinite alternate}
+.koi-drift-late{animation-delay:-7s}
+@keyframes koi-drift{0%{translate:-8px 0}45%{translate:1px -3px}100%{translate:9px 2px}}
+@media(prefers-reduced-motion:reduce){.koi-drift{animation:none}}
 .garden-world .camera-controls button{min-width:44px;min-height:44px}
 .garden-world .camera-controls .camera-reset{display:flex;align-items:center;justify-content:center;gap:5px;width:auto;padding:0 9px;color:var(--ink);font-size:10px;font-weight:600;white-space:nowrap}
 .camera-hint{position:absolute;bottom:23px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);padding:5px 10px;border:1px solid var(--line);border-radius:20px;background:var(--cream);color:var(--ink);font-size:11px;text-align:center;pointer-events:none}
