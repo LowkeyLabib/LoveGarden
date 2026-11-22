@@ -11,10 +11,28 @@ class Canvas{
  line(x,y,xx,yy,c,w=1){const n=Math.max(Math.abs(xx-x),Math.abs(yy-y),1);for(let i=0;i<=n;i++)this.rect(x+(xx-x)*i/n,y+(yy-y)*i/n,w,w,c);}
  oval(x,y,rx,ry,c){for(let j=-ry;j<=ry;j++)for(let i=-rx;i<=rx;i++)if(i*i/(rx*rx)+j*j/(ry*ry)<=1)this.dot(x+i,y+j,c);}
 }
+const gesturePoses={
+ labib:['smoke-standing','embarrassed'],
+ mehezad:['scold','bonk','snatch','throw'],
+};
+function gestureHand(pose,frame,top,head){
+ if(pose==='smoke-standing')return frame===1||frame===2?{x:29,y:head+12}:{x:34,y:top+7};
+ if(pose==='scold')return {x:35,y:top-3+frame%2*2};
+ if(pose==='bonk')return [{x:28,y:top-12},{x:38,y:top-15},{x:40,y:top-12},{x:34,y:top-8}][frame];
+ if(pose==='snatch')return frame<2?{x:37,y:top-5}:{x:31,y:top-1};
+ if(pose==='throw')return [{x:32,y:top-4},{x:31,y:top-12},{x:40,y:top-14},{x:35,y:top-6}][frame];
+ return null;
+}
+function drawCigarette(c,x,y){
+ c.rect(x,y,4,1,'#f0dfc4');
+ c.dot(x+4,y,'#d38663');
+}
 function draw(person,pose,frame,back){
  const c=new Canvas(),girl=person==='mehezad',walk=pose==='walk',sit=pose==='sit'||pose==='smoke',plant=pose==='plant',water=pose==='water',sad=pose==='sad';
  const step=walk?[0,2,0,-2][frame]:0,bob=walk&&frame%2?1:0,bend=plant?[3,5,7,4][frame]:0;
- const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend,head=top-14+(sad?2:0);
+ const embarrassed=pose==='embarrassed';
+ const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend,head=top-14+(sad?2:embarrassed?1:0);
+ const hand=gestureHand(pose,frame,top,head);
  const shirt=girl?colors.pink:colors.black,light=girl?colors.pinkLight:colors.blackLight,shade=girl?colors.pinkShadow:colors.blackShadow;
  if(!sit)c.oval(25,49,9,3,[31,43,44,60]);
  // Long hair behind the shoulders is a separate, layered silhouette.
@@ -32,7 +50,7 @@ function draw(person,pose,frame,back){
  else{c.line(21,top,24,top+2,'#f7c9d5');c.line(24,top+2,28,top,'#ebafc2');c.rect(20,top+8,7,1,colors.pinkShadow);}
  const armSwing=walk?step:0;
  c.line(18,top+2,17,top+8-armSwing,shade,3);c.rect(17,top+8-armSwing,3,3,colors.skin);
- c.line(30,top+2,31,top+8+armSwing,shirt,3);c.rect(31,top+8+armSwing,3,3,colors.skinLight);
+ if(!hand){c.line(30,top+2,31,top+8+armSwing,shirt,3);c.rect(31,top+8+armSwing,3,3,colors.skinLight);}
  // Face: warm skin, three-quarter nose, asymmetric fringe, earrings or black shades.
  c.oval(24,head+8,6,7,colors.outline);c.oval(24,head+8,5,6,colors.skin);c.rect(20,head+4,7,7,colors.skinLight);c.rect(27,head+6,2,5,colors.skinShadow);c.rect(18,head+8,2,3,colors.skin);c.dot(28,head+9,colors.skinLight);
  if(back){c.oval(24,head+7,7,8,colors.hair);c.rect(19,head+1,6,2,colors.hairMid);c.line(18,head+5,20,head+10,colors.hairLight);c.rect(24,head+13,4,2,colors.hairMid);}
@@ -43,6 +61,16 @@ function draw(person,pose,frame,back){
   else{c.oval(23,head+1,8,5,colors.hair);c.rect(18,head-4,4,2,colors.hair);c.rect(25,head-3,5,2,colors.hair);c.line(18,head,23,head-3,colors.hairMid,2);c.line(22,head+1,28,head-2,colors.hairMid,2);c.line(26,head+3,31,head,colors.hair,2);c.rect(17,head+2,2,7,colors.hairMid);c.dot(21,head-3,colors.hairLight);c.line(25,head-2,28,head-1,colors.hairLight);}
  }
  if(girl&&back){c.rect(17,head+8,14,15,colors.hair);c.line(20,head+7,19,head+22,colors.hairMid);c.line(27,head+9,28,head+24,colors.hairLight);}
+ if(!back&&girl&&hand){
+  c.dot(20,head+6,colors.hairMid);c.dot(21,head+7,colors.hairMid);
+  c.dot(25,head+7,colors.hairMid);c.dot(26,head+6,colors.hairMid);
+  c.rect(23,head+12,3,1,'#944e5a');
+  if(pose==='scold'&&frame%2)c.dot(24,head+13,'#944e5a');
+ }
+ if(!back&&embarrassed){
+  c.rect(20,head+11,2,1,'#db8c82');c.rect(27,head+11,2,1,'#d7857b');
+  c.rect(23,head+13,3,1,'#855360');c.dot(26,head+12,'#855360');
+ }
  if(sit){c.line(18,top+4,21,40,shirt,3);c.rect(21,40,3,2,colors.skinLight);c.line(30,top+4,27,43,shade,3);c.rect(26,42,3,2,colors.skin);}
  if(plant){c.line(29,top+3,35,43+frame%2,shirt,3);c.rect(34,43+frame%2,3,2,colors.skinLight);c.rect(17,top+6,5,7,'#b79867');c.rect(18,top+7,3,2,'#e6c994');c.dot(36,46+frame%2,'#dbc39b');c.dot(39,48,'#8e6b4d');}
  if(water){const tilt=frame%2;c.line(29,top+4,33,top+7,shirt,3);c.rect(32,top+7,3,2,colors.skinLight);c.rect(32,top+8,8,7,'#456c71');c.rect(33,top+8,6,5,'#87b3b0');c.line(37,top+8,37,top+5,'#456c71');c.line(34,top+5,37,top+5,'#456c71');c.line(39,top+10,43,top+8+tilt,'#659296',2);c.rect(42,top+7+tilt,3,3,'#aacdca');if(frame!==0)for(let i=0;i<3;i++)c.rect(43+i,top+12+i*4+(frame%2),1,2,'#b5e3e2');}
@@ -50,12 +78,32 @@ function draw(person,pose,frame,back){
   const raised=frame===1||frame===2;c.line(29,top+4,raised?30:33,raised?head+12:top+8,shirt,3);c.rect(raised?29:32,raised?head+11:top+8,3,2,colors.skinLight);const x=raised?30:34,y=raised?head+11:top+9;c.rect(x,y,4,1,'#eadac0');c.dot(x+4,y,'#d89c67');
   for(let i=0;i<3;i++){const yy=y-4-i*5-frame%2;c.line(x+3+(i%2),yy,x+5-i%2,yy-2,[193,193,185,95-i*20]);}
  }
+ if(hand){
+  c.line(29,top+3,hand.x,hand.y,shirt,3);
+  c.rect(hand.x,hand.y,3,2,colors.skinLight);
+  if(pose==='smoke-standing'||pose==='snatch'&&frame>=2||pose==='throw'&&frame<2)drawCigarette(c,hand.x+2,hand.y);
+  if(pose==='smoke-standing'&&frame!==0){
+   const x=hand.x+5,y=hand.y-3-frame%2;
+   c.rect(x,y,2,2,[207,208,194,110]);
+   c.dot(x+1,y-3,[215,215,203,80]);
+   if(frame===3)c.dot(x-1,y-6,[215,215,203,45]);
+  }
+ }
  return c.data;
 }
-const poses=['idle','walk','sit','plant','water','sad','smoke'],directions=['se','sw','ne','nw'],columns=16,rows=Math.ceil(2*poses.length*4*directions.length/columns),atlas=Buffer.alloc(columns*W*rows*H*4),frames={};let index=0;
-for(const person of ['labib','mehezad'])for(const pose of poses)for(const direction of directions)for(let frame=0;frame<4;frame++){
- const pixels=draw(person,pose,frame,direction[0]==='n'),mirror=direction[1]==='w',left=index%columns*W,top=Math.floor(index/columns)*H;
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const source=(y*W+(mirror?W-1-x:x))*4,target=((top+y)*columns*W+left+x)*4;pixels.copy(atlas,target,source,source+4);}
+const poses=['idle','walk','sit','plant','water','sad','smoke'],directions=['se','sw','ne','nw'];
+const columns=16,rows=Math.ceil((2*poses.length+gesturePoses.labib.length+gesturePoses.mehezad.length)*directions.length*4/columns);
+const atlas=Buffer.alloc(columns*W*rows*H*4),frames={};let index=0;
+function packFrame(pixels,target,columns,index,direction){
+ const mirror=direction[1]==='w',left=index%columns*W,top=Math.floor(index/columns)*H;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+  const source=(y*W+(mirror?W-1-x:x))*4,dest=((top+y)*columns*W+left+x)*4;
+  pixels.copy(target,dest,source,source+4);
+ }
+ return {left,top};
+}
+for(const person of ['labib','mehezad'])for(const pose of [...poses,...gesturePoses[person]])for(const direction of directions)for(let frame=0;frame<4;frame++){
+ const {left,top}=packFrame(draw(person,pose,frame,direction[0]==='n'),atlas,columns,index,direction);
  frames[`${person}-${pose}-${direction}-${frame}`]={x:left,y:top,w:W,h:H,anchorX:24,anchorY:49};index++;
 }
 
@@ -137,7 +185,8 @@ function drawDesi(style, pose, frame, back) {
  const pantsShade = mix(pants, edge, 0.28);
  const base = draw(person, pose, frame, back);
  const article = new Canvas();
- for (let y = top; y < H; y++) {
+ const hand = gestureHand(pose, frame, top, top - 14);
+ for (let y = Math.min(top, hand?.y ?? top); y < H; y++) {
   for (let x = 0; x < W; x++) {
    const offset = (y * W + x) * 4;
    const pixel = base.readUInt32BE(offset);
@@ -282,24 +331,40 @@ function drawFashion(style,pose,frame,back){
   if(!back){c.dot(21,top+7,style.detail);c.dot(27,top+10,style.detail);}
  }
  const armSwing=walk?step:0;
- c.line(18,top+2,17,top+8-armSwing,style.shade,3);c.line(30,top+2,31,top+8+armSwing,style.main,3);
+ const hand=gestureHand(pose,frame,top,top-14);
+ c.line(18,top+2,17,top+8-armSwing,style.shade,3);
+ if(hand)c.line(29,top+3,hand.x,hand.y,style.main,3);
+ else c.line(30,top+2,31,top+8+armSwing,style.main,3);
  if(sit){c.line(18,top+4,21,40,style.main,3);c.line(30,top+4,27,43,style.shade,3);}
  if(plant)c.line(29,top+3,35,43+frame%2,style.main,3);
  if(pose==='water')c.line(29,top+4,33,top+7,style.main,3);
  if(pose==='smoke'){const raised=frame===1||frame===2;c.line(29,top+4,raised?30:33,raised?top-2:top+8,style.main,3);}
+ if(hand)c.rect(hand.x,hand.y,3,2,[0,0,0,0]);
  return c.data;
 }
 const fashionColumns=48,fashionAtlas=Buffer.alloc(fashionColumns*W*Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H*4);let fashionIndex=0;
 for(const style of fashionStyles)for(const pose of poses)for(const direction of directions)for(let frame=0;frame<4;frame++){
- const pixels=drawFashion(style,pose,frame,direction[0]==='n'),mirror=direction[1]==='w',left=fashionIndex%fashionColumns*W,top=Math.floor(fashionIndex/fashionColumns)*H;
- for(let y=0;y<H;y++)for(let x=0;x<W;x++){const source=(y*W+(mirror?W-1-x:x))*4,target=((top+y)*fashionColumns*W+left+x)*4;pixels.copy(fashionAtlas,target,source,source+4);}
- fashionIndex++;
+ packFrame(drawFashion(style,pose,frame,direction[0]==='n'),fashionAtlas,fashionColumns,fashionIndex++,direction);
+}
+// The existing wardrobe atlas stays within the mobile texture limit. Only
+// gestures used by each wearer are packed into a separate, smaller sheet.
+const gestureCount=fashionStyles.reduce((total,style)=>total+gesturePoses[style.person].length*directions.length*4,0);
+const gestureHeight=Math.ceil(gestureCount/fashionColumns)*H;
+const gestureAtlas=Buffer.alloc(fashionColumns*W*gestureHeight*4),gestureStarts={};
+let gestureIndex=0;
+for(const style of fashionStyles){
+ gestureStarts[style.ref]=gestureIndex;
+ for(const pose of gesturePoses[style.person])for(const direction of directions)for(let frame=0;frame<4;frame++){
+  packFrame(drawFashion(style,pose,frame,direction[0]==='n'),gestureAtlas,fashionColumns,gestureIndex++,direction);
+ }
 }
 await sharp(atlas,{raw:{width:columns*W,height:rows*H,channels:4}}).png().toFile('public/art/characters.png');
 await writeFile('src/garden/characters.json',JSON.stringify({width:columns*W,height:rows*H,frames}));
 const fashionHeight=Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H;
 await sharp(fashionAtlas,{raw:{width:fashionColumns*W,height:fashionHeight,channels:4}}).png().toFile('public/art/fashion.png');
-await writeFile('src/garden/fashion.json',JSON.stringify({width:fashionColumns*W,height:fashionHeight,columns:fashionColumns,styles:fashionStyles.map(style=>style.ref)}));
+await sharp(gestureAtlas,{raw:{width:fashionColumns*W,height:gestureHeight,channels:4}}).png().toFile('public/art/fashion-gestures.png');
+await writeFile('src/garden/fashion.json',JSON.stringify({width:fashionColumns*W,height:fashionHeight,columns:fashionColumns,
+ styles:fashionStyles.map(style=>style.ref),gestureHeight,gesturePoses,gestureStarts}));
 await writeFile('public/art/characters-LICENSE.txt','Original LoveGarden character sprites, authored for this project. No reference photographs or third-party artwork are included. Rebuild with scripts/characters.mjs.\n');
 await writeFile('public/art/fashion-LICENSE.txt','Original LoveGarden wardrobe sprites, authored for this project. No third-party artwork is included. Rebuild with scripts/characters.mjs.\n');
 console.log(`Created ${index} character frames and ${fashionIndex} wardrobe layer frames.`);
