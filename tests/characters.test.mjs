@@ -59,3 +59,37 @@ test('characters use saved bench placement and cancel actions for removed flower
  state.seeds=[{...state.seeds[0],removed_at:new Date(time+1000).toISOString()}];
  assert.ok(run(director,state,time+1000,10).every(pair=>pair.every(p=>p.pose!=='plant')));
 });
+test('viewers share rare smoking opportunities, both outcomes, and a close follow after the catch',()=>{
+ const state=garden(),caretaker={...state,role:'CARETAKER'},before=JSON.stringify(state);
+ const guest=new CharacterDirector(),member=new CharacterDirector();
+ const starts=[],caught=[],closeAfterCatch=[];
+ let previous,finishTime,afterThrow;
+ for(let elapsed=0;elapsed<=920_000;elapsed+=80){
+  const now=epoch+elapsed,pair=guest.update(state,now,.08);
+  if(elapsed===254_000)caretaker.decorations=[];
+  const local=member.update(caretaker,now,.08);
+  const [labib,mehezad]=pair;
+  assert.deepEqual(local,pair);
+  const gap=Math.hypot(labib.x-mehezad.x,labib.y-mehezad.y);
+  if(labib.gesture==='lookout'&&previous!=='lookout'){
+   assert.ok(gap>=85);
+   starts.push(elapsed);
+  }
+  if(previous==='smoking'&&!labib.gesture)finishTime=elapsed-starts.at(-1);
+  if(mehezad.gesture&&mehezad.gesture!==caught.at(-1))caught.push(mehezad.gesture);
+  if(previous==='smoking'&&labib.gesture==='surprised')assert.ok(gap<84);
+  if(mehezad.gesture==='throw')afterThrow=elapsed;
+  if(afterThrow&&elapsed>afterThrow+1500&&elapsed<afterThrow+30_000)closeAfterCatch.push(gap);
+  previous=labib.gesture;
+ }
+ assert.equal(starts.length,2);
+ assert.ok(starts[1]-starts[0]>=9*60_000&&starts[1]-starts[0]<=15*60_000);
+ assert.ok(finishTime>=15_000&&finishTime<=20_000);
+ assert.deepEqual(caught,['hurry','scold','bonk','snatch','throw']);
+ assert.ok(closeAfterCatch.filter(gap=>gap>=16&&gap<27).length>closeAfterCatch.length*.7);
+ assert.equal(JSON.stringify(state),before);
+ const resumed=guest.update(state,epoch+2_000_000,0);
+ assert.ok(resumed.every(p=>!p.gesture));
+ const fresh=new CharacterDirector().update(state,epoch+starts[1]+3000,0);
+ assert.ok(fresh.every(p=>!p.gesture));
+});

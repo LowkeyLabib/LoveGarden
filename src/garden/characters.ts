@@ -36,7 +36,7 @@ export class WalkingMap{
   for(let i=1;i<=steps;i++)if(!this.canWalk(between(from,to,i/steps)))return false;
   return true;
  }
- private nearest(p:Point,connected=false,avoid?:Point){
+ private nearest(p:Point,connected=false,avoid?:Point):Point|null{
   let best:Point|null=null,score=Infinity;
   const clearance=avoid?Math.min(19,distance(p,avoid)):0;
   const search=(minU:number,maxU:number,minV:number,maxV:number)=>{
@@ -235,7 +235,10 @@ export class CharacterDirector{
    a.route=Math.abs(step)>.02?this.trail.route(this.followingAt,this.followingAt+step):[];
    const moved=advance(a,seconds,speed,b.point);
    this.followingAt+=Math.sign(difference)*moved;
-   if(moved>.01)a.pose='walk';
+   if(moved>.01){
+    a.pose='walk';
+    if(difference<0)a.direction=directionTo(a.point,b.point);
+   }
   }else if(this.joinAt!==null){
    if(advance(a,seconds,44,b.point)>.01)a.pose='walk';
    if(!a.route.length){this.followingAt=this.joinAt;this.joinAt=null;}
