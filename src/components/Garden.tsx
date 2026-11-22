@@ -10,7 +10,7 @@ import {useCharacters} from '../garden/useCharacters';
 import {CharacterSprite} from '../garden/CharacterSprite';
 import {DecorationLights,PondLife,SceneryLife,MushroomFireflies} from '../garden/DecorationDetails';
 import {connectGardenCamera} from '../garden/camera';
-import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds, availablePondSpots, spotById } from '../garden/world';
+import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds, availablePondSpots, spotById, fitsDecorationBay } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
 
 type Props={state:GardenState;now:number;onSpot:(n:number)=>void;onSeed:(s:Seed)=>void;onGift:(g:Gift)=>void;onPlace:(slot:number)=>void;placing:string|null};
@@ -62,6 +62,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  const placingSize=state.catalog.find(item=>item.id===placingItem?.catalog_id)?.placement_size??0;
  const occupiedBays=new Set(state.decorations.filter(d=>d.inventory_id!==placing).map(d=>d.slot));
  const waterSpots=useMemo(()=>availablePondSpots(state.decorations),[state.decorations]);
+ const activeSeeds=useMemo(()=>new Map(state.seeds.filter(seed=>isActiveFlower(seed,now)).map(seed=>[seed.spot,seed])),[state.seeds,now]);
  // Feedback observes public state transitions; rewards and growth remain authoritative.
  useEffect(()=>{
   const next=new Map<string,{watered:boolean;bloom:boolean;claimed:boolean}>(), additions:Effect[]=[];
@@ -72,7 +73,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  useEffect(()=>{if(!effects.length)return;const timeout=window.setTimeout(()=>setEffects([]),1500);return()=>window.clearTimeout(timeout);},[effects]);
  const objectProps=(label:string,action:()=>void)=>({role:'button',tabIndex:0,'aria-label':label,className:'world-object',onClick:action,onKeyDown:(e:KeyboardEvent)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();action();}}});
  const objects:{key:string;y:number;x:number;node:ReactNode}[]=scenery.map((s,i)=>({key:`scene-${i}`,x:s.x,y:s.y,node:<g className={s.name==='butterfly-small'?'garden-butterfly':undefined} style={{animationDelay:`${-i*.37}s`}}><PixelSprite {...s}/></g>}));
- for(const spot of spots){const seed=state.seeds.find(s=>s.spot===spot.id&&isActiveFlower(s,now));const value=seed?growth(seed.watered_at,now,state.epoch):0;const stage=!seed?.watered_at?0:value===1?3:value<.33?1:2;const status=!seed?.watered_at?'needs water':stage===3?'in bloom':stage===1?'sprouting':'budding';
+ for(const spot of spots){const seed=activeSeeds.get(spot.id);const value=seed?growth(seed.watered_at,now,state.epoch):0;const stage=!seed?.watered_at?0:value===1?3:value<.33?1:2;const status=!seed?.watered_at?'needs water':stage===3?'in bloom':stage===1?'sprouting':'budding';
   objects.push({key:`plot-${spot.id}`,x:spot.x,y:spot.y,node:<g transform={`translate(${spot.x} ${spot.y})`}><g {...objectProps(seed?`Plot ${spot.id+1}: ${seed.flower_type}, ${status}`:`Empty plot ${spot.id+1}${state.role==='GARDENER'?', plant a memory':''}`,()=>seed?onSeed(seed):onSpot(spot.id))}>
    <polygon points={diamond} className="plot-focus"/>{seed&&<rect x="-16" y="-38" width="32" height="42" fill="transparent"/>}</g>
    {seed?<><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{stage===3&&!seed.opened_at&&<path className="bloom-spark" d="M17-33v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/>}{!seed.watered_at&&state.role==='CARETAKER'&&<path d="m13-18 3-5 3 5v3h-6Z" fill="#bcf0ee" stroke="#38677e"/>}</>:<PixelSprite name="marker" x={16} y={-1}/>}
@@ -81,7 +82,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  }
  for(const {seed,stage} of departures){const p=spotById.get(seed.spot);if(p&&(!("pondSlot" in p)||waterSpots.some(w=>w.id===p.id))&&!state.seeds.some(s=>s.spot===seed.spot&&isActiveFlower(s,now)))objects.push({key:'departing-'+seed.id,x:p.x,y:"pondSlot" in p&&p.pondSlot!==null?Math.max(p.y,decorSlots[p.pondSlot].y+1):p.y,node:<g transform={`translate(${p.x} ${p.y})`} pointerEvents="none" aria-hidden="true"><g className="flower-departure"><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{[-15,-7,1,9,17].map((x,i)=><g key={x} transform={`translate(${x} ${-17-i%3*7})`}><path className="departure-petal" d="M0 0h3v2H1v1H0Z" fill={seed.flower_type==='bluebell'?'#b8d8e3':seed.flower_type==='daisy'?'#f7dfa3':'#efbacb'} style={{animationDelay:`${i*.09}s`}}/></g>)}</g></g>});}
  for(const spot of waterSpots){
-  const seed=state.seeds.find(s=>s.spot===spot.id&&isActiveFlower(s,now));
+  const seed=activeSeeds.get(spot.id);
   const value=seed?growth(seed.watered_at,now,state.epoch):0;
   const stage=!seed?.watered_at?0:value===1?3:value<.33?1:2;
   const depth=spot.pondSlot===null?spot.y:Math.max(spot.y,decorSlots[spot.pondSlot].y+1);
@@ -125,7 +126,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
   </g>
   <g opacity={lighting} pointerEvents="none">{lamps.map((p,i)=><g key={i}><circle cx={p.x+11} cy={p.y-32} r="29" fill="url(#lamp-light)"/><rect x={p.x+7} y={p.y-35} width="8" height="10" fill="#ffe6a1" className="pixel-glow"/></g>)}{cottages.map((p,i)=><g key={i} transform={`translate(${p.x} ${p.y})`}><circle cx="14" cy="-20" r="16" fill="url(#lamp-light)"/></g>)}{Array.from({length:12},(_,i)=><rect key={i} className="pixel-firefly" x={165+i*27} y={183+(i*37)%130} width="2" height="2" fill="#fff1ab" style={{animationDelay:`${-i*.7}s`}}/>)}</g>
   <g opacity={1-lighting*.75} pointerEvents="none">{[[569,160],[583,179],[555,170],[351,317],[371,320]].map(([x,y],i)=><g key={i} transform={`translate(${x} ${y})`}><path className="garden-petal" d="M0 0h3v1h-1v2H0Z" fill="#f6c6d0" style={{animationDelay:`${-i*3.3}s`}}/></g>)}</g>
-  {placing&&decorSlots.map((p,i)=>!occupiedBays.has(i)&&p.capacity>=placingSize&&<g key={i} transform={`translate(${p.x} ${p.y})`} {...objectProps(`Place decoration in slot ${i+1}`,()=>onPlace(i))}><polygon points={diamond} className="placement-target"/><text className="slot-number" textAnchor="middle" y="4">{i+1}</text></g>)}
+  {placingItem&&decorSlots.map((p,i)=>!occupiedBays.has(i)&&fitsDecorationBay(p.capacity,placingItem.catalog_id,placingSize)&&<g key={i} transform={`translate(${p.x} ${p.y})`} {...objectProps(`Place decoration in slot ${i+1}`,()=>onPlace(i))}><polygon points={diamond} className="placement-target"/><text className="slot-number" textAnchor="middle" y="4">{i+1}</text></g>)}
   <g pointerEvents="none">{effects.map((effect,i)=><g key={`${effect.id}-${i}`} transform={`translate(${effect.x} ${effect.y-20})`}><g className="world-feedback">{[-12,-5,2,9,16].map((x,n)=><rect key={x} x={x} y={-n%3*5} width="3" height={effect.kind==='water'?6:3} fill={effect.kind==='water'?'#b9f2f2':'#ffe6a0'}/>)}<text textAnchor="middle" y="-18">{effect.kind==='water'?'Watered':effect.kind==='bloom'?'In bloom!':'Discovered!'}</text></g></g>)}</g>
  </>}
  </svg>

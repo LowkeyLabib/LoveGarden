@@ -24,7 +24,12 @@ returns trigger language plpgsql set search_path='' as $$
 begin
  if exists (
   select 1 from public.store_catalog c cross join public.decoration_slots s
-  where c.id=new.catalog_id and s.id=new.slot and c.placement_size>s.capacity
+  where c.id=new.catalog_id and s.id=new.slot and case
+   when s.capacity=0 then c.placement_size>0
+   when c.placement_size>0 then c.placement_size>s.capacity
+   when c.id in ('arch','fountain','cottage','tree') then s.capacity<3
+   when c.id in ('bench','butterfly','seasonal') then s.capacity<2
+   else false end
  ) then raise exception 'This decoration needs a larger clearing'; end if;
  return new;
 end $$;

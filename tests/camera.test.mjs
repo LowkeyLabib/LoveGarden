@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { connectGardenCamera, constrainCamera, gardenSize, minimumZoom, moveCamera } from '../src/garden/camera.ts';
-import { decorSlots, hidingPlaces, spots } from '../src/garden/world.ts';
+import { decorSlots, hidingPlaces, spots, pondSpots, grid, groundPoint, footprintRadius, pondRadius } from '../src/garden/world.ts';
 
 const portrait = { width: 390, height: 650 };
 
@@ -14,13 +14,27 @@ test('viewport and zoom bounds allow both world edges in each axis', () => {
    const halfWidth = halfHeight * viewport.width / viewport.height;
    assert.ok(low.x - halfWidth <= gardenSize.x && low.y - halfHeight <= gardenSize.y);
    assert.ok(high.x + halfWidth >= gardenSize.x+gardenSize.width && high.y + halfHeight >= gardenSize.y+gardenSize.height);
-   for (const point of [...spots, ...hidingPlaces, ...decorSlots]) {
+   for (const point of [...spots, ...hidingPlaces, ...decorSlots, ...pondSpots]) {
     const camera = constrainCamera({ ...point, zoom }, viewport);
     assert.ok(Math.abs(point.x - camera.x) < halfWidth);
     assert.ok(Math.abs(point.y - camera.y) < halfHeight);
    }
   }
  }
+});
+
+test('the added land and reserved decoration footprints leave plots, gifts and water usable',()=>{
+ assert.equal((grid.maxU-grid.minU)*(grid.maxV-grid.minV),4*20*18);
+ assert.deepEqual(spots.slice(0,15).map(p=>[p.u,p.v]),Array.from({length:15},(_,i)=>[7+i%5*2,6+Math.floor(i/5)*2]));
+ const distance=(a,b)=>Math.max(Math.abs(a.u-b.u),Math.abs(a.v-b.v));
+ const reserved=decorSlots.filter(p=>p.capacity>0);
+ const resources=[...spots,...hidingPlaces.map(p=>groundPoint(p.x,p.y))];
+ for(const [i,bay] of reserved.entries()){
+  assert.ok(pondRadius(bay.u,bay.v)>1.1);
+  assert.ok(resources.every(p=>distance(bay,p)>=footprintRadius(bay.capacity)+.8));
+  assert.ok(reserved.slice(i+1).every(p=>distance(bay,p)>=footprintRadius(bay.capacity)+footprintRadius(p.capacity)));
+ }
+ assert.ok(pondSpots.filter(p=>p.pondSlot===null).every(p=>pondRadius(p.u,p.v)<.86));
 });
 
 test('pinch keeps the world point under a moving midpoint at the zoom limit', () => {

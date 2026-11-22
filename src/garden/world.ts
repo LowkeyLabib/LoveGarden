@@ -11,7 +11,7 @@ export const hidingPlaces=[
  {...iso(2,6),name:'By the willow'}, {...iso(16,15),name:'Behind the hydrangeas'},
  {...iso(5.8,11.7),name:'Beside the pond'}, {...iso(18,4),name:'Under the wishing tree'},
  {...iso(7,16),name:'Near the garden gate'},
- {...iso(-7,-1),name:'Along the fern trail'}, {...iso(24,1),name:'By the orchard path'},
+ {...iso(-7,-1),name:'Along the fern trail'}, {...iso(22,1),name:'By the orchard path'},
  {...iso(20,19),name:'In the sunset meadow'}, {...iso(-3,19),name:'Near the lower pond bank'},
  {...iso(12,-3),name:'Beyond the north beds'},
 ];
@@ -38,12 +38,18 @@ const decorationSizes: Record<string,number> = {
 };
 export const footprintRadius=(size:number)=>[0,0.65,1.25,1.7][size]??0;
 export const decorationRadius=(catalogId:string)=>footprintRadius(decorationSizes[catalogId]??0);
+const classicBaySizes:Record<string,number>={bench:2,butterfly:2,arch:3,fountain:3,cottage:3,tree:3,seasonal:2};
+export function fitsDecorationBay(capacity:number,catalogId:string,placementSize=0){
+ return capacity===0?placementSize===0:capacity>=(placementSize||classicBaySizes[catalogId]||1);
+}
 export const aquaticFlowerIds=['pink-water-lily','white-water-lily','moon-lily'] as const;
 export const isAquaticFlower=(type:string)=>aquaticFlowerIds.some(id=>id===type);
 const mainWater=[[-5.7,10.2],[-5,12.7],[-3.55,8.95],[-3.2,13.75],[-1.55,8.7],[-1.2,13.8],[.55,9.1],[.65,13.2]];
 export type WaterSpot={id:number;x:number;y:number;u:number;v:number;pondSlot:number|null;name:string};
 export const pondSpots:WaterSpot[]=[
- ...mainWater.map(([u,v],i)=>({id:100+i,u,v,...iso(u,v),pondSlot:null,name:`Main pond · lily spot ${i+1}`})),
+ ...mainWater.map(([u,v],i)=>{
+  const {x,y}=iso(u,v);return {id:100+i,u,v,x:Math.round(x),y:Math.round(y),pondSlot:null,name:`Main pond · lily spot ${i+1}`};
+ }),
  ...decorSlots.flatMap((bay,slot)=>bay.capacity<2?[]:[[-15,1],[0,-8],[15,2]].map(([dx,dy],i)=>{
   const x=bay.x+dx,y=bay.y+dy;
   return {id:1000+slot*3+i,x,y,...groundPoint(x,y),pondSlot:slot,name:`Koi Pond ${slot+1} · lily spot ${i+1}`};
@@ -53,7 +59,7 @@ export const availablePondSpots=(decorations:readonly {slot:number;catalog_id:st
  const ponds=new Set(decorations.filter(d=>d.catalog_id==='koi-pond').map(d=>d.slot));
  return pondSpots.filter(spot=>spot.pondSlot===null||ponds.has(spot.pondSlot));
 };
-export const spotById=new Map([...spots,...pondSpots].map(spot=>[spot.id,spot]));
+export const spotById=new Map<number,(typeof spots)[number]|WaterSpot>([...spots,...pondSpots].map(spot=>[spot.id,spot]));
 export const pondRadius=(u:number,v:number)=>{
  const original=Math.hypot((u-3.1)/2.25,(v-11.2)/2.9);
  const west=Math.hypot((u+1.7)/5.8,(v-11.15)/3.35);

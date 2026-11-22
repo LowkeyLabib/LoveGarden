@@ -35,6 +35,18 @@ test('reduced motion uses stable poses and never smokes or runs walking animatio
  const state=garden(),director=new CharacterDirector();const first=director.update(state,epoch,0,true),later=director.update(state,epoch+110000,110,true);
  assert.deepEqual(first,later);assert.ok(later.every(p=>p.pose==='idle'&&p.frame===0));
 });
+test('a shared swing visit walks both characters to their seats without jumps',()=>{
+ const state=garden();
+ state.decorations=[{inventory_id:'swing',catalog_id:'garden-swing',slot:10}];
+ const history=run(new CharacterDirector(),state,epoch+196_000,40);
+ const seated=history.find(pair=>pair.every(p=>p.pose==='sit'));
+ assert.ok(seated);
+ assert.ok(seated.every(p=>Math.abs(p.x-decorSlots[10].x)<12&&Math.abs(p.y-decorSlots[10].y)<8));
+ for(let i=1;i<history.length;i++)for(let n=0;n<2;n++){
+  const a=history[i-1][n],b=history[i][n];
+  assert.ok(Math.hypot(b.x-a.x,b.y-a.y)<3.5);
+ }
+});
 test('characters use saved bench placement and cancel actions for removed flowers',()=>{
  const state=garden();state.decorations=[{inventory_id:'bench',catalog_id:'bench',slot:1}];
  const director=new CharacterDirector(),history=run(director,state,epoch+80000,30);

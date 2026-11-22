@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
 import { daylightTotal, EPOCH } from '../src/lib/clock.mjs';
+import {decorSlots, pondSpots, spots} from '../src/garden/world.ts';
 const gardener='10000000-0000-0000-0000-000000000001',caretaker='10000000-0000-0000-0000-000000000002',stranger='10000000-0000-0000-0000-000000000003';
 const flower='20000000-0000-0000-0000-000000000001',gift='30000000-0000-0000-0000-000000000001',purchase='40000000-0000-0000-0000-000000000001';
 test('PostgreSQL permissions, private storage, atomic rewards and purchases',async t=>{
@@ -24,7 +25,7 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
  const one=async(sql,params=[]) => (await db.query(sql,params)).rows[0];
  const plant=()=>db.query('select public.plant_seed($1,0,$2,$3,null,null,$4)',[flower,'rose','Only for us','']);
  await t.test('guest and unassigned accounts cannot read private data or perform mutations',async()=>{
-  await as(null,'anon');assert.equal((await one("select count(*)::int n from public.store_catalog where category='DECORATION'")).n,10);
+  await as(null,'anon');assert.equal((await one("select count(*)::int n from public.store_catalog where category='DECORATION' and placement_size=0")).n,10);
   await assert.rejects(()=>db.query('select * from public.flower_content'),/permission denied/);
   await assert.rejects(()=>db.query('select * from public.profiles'),/permission denied/);
   await assert.rejects(()=>db.query('select public.water_seed($1)',[flower]),/permission denied/);
@@ -264,6 +265,57 @@ test('PostgreSQL permissions, private storage, atomic rewards and purchases',asy
   }
   const rls=await one("select count(*)::int n from pg_tables where schemaname='public' and not rowsecurity");assert.equal(rls.n,0);
   const exposed=await one("select count(*)::int n from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef");assert.equal(exposed.n,0);
+ });
+ await t.test('expanded decoration purchases and aquatic flowers reuse secure placement and rewards',async()=>{
+  const products=(await db.query("select name,price from public.store_catalog where placement_size>0 order by price")).rows;
+  assert.deepEqual(products.map(p=>[p.name,p.price]),[
+   ['Birdhouse',40],['Heart Stepping Stones',50],['Glowing Mushrooms',60],['Flower Cart',80],
+   ['Picnic Spot',150],['Garden Swing',180],['Koi Pond',250],['Cherry Blossom Tree',300],
+   ['Rose Heart Arch',400],['Romantic Gazebo',550],['Moonlit Bridge',650],['Fairy Cottage',750],
+  ]);
+  const mapped=(await db.query('select id,x,y,pond_slot from public.planting_spots where id>=15 order by id')).rows;
+  assert.deepEqual(mapped,[...spots.slice(15),...pondSpots].map(p=>({id:p.id,x:p.x,y:p.y,pond_slot:p.pondSlot??null})));
+  assert.deepEqual((await db.query('select capacity from public.decoration_slots order by id')).rows.map(r=>r.capacity),decorSlots.map(s=>s.capacity));
+  const pond=crypto.randomUUID(),lily=crypto.randomUUID(),bay=11,pondPlot=1000+bay*3;
+  const plant=(spot,type,id=crypto.randomUUID())=>db.query("select public.plant_seed($1,$2,$3,'Pond memory',null,null,'')",[id,spot,type]);
+  const place=(slot)=>db.query("select public.place_decoration($1,$2)",[pond,slot]);
+  await db.exec('reset role');await db.query("update public.wallets set balance=1000 where user_id=$1",[caretaker]);
+  await db.exec("update public.game_clock set epoch=now()-interval '11 minutes'");
+  await as(gardener);
+  await assert.rejects(()=>db.query("select public.purchase('koi-pond',$1)",[pond]),/caretaker/);
+  await assert.rejects(()=>plant(pondPlot,'pink-water-lily'),/needs a placed Koi Pond/);
+  await assert.rejects(()=>plant(15,'pink-water-lily'),/different planting habitat/);
+  await assert.rejects(()=>plant(100,'sunflower'),/different planting habitat/);
+  await as(caretaker);
+  await assert.rejects(()=>plant(100,'moon-lily'),/gardener/);
+  await db.query("select public.purchase('koi-pond',$1)",[pond]);
+  await db.query("select public.purchase('koi-pond',$1)",[pond]);
+  assert.equal((await one('select balance from public.wallets')).balance,750);
+  await assert.rejects(()=>place(24),/larger clearing/);
+  await place(bay);
+  await as(gardener);
+  await assert.rejects(()=>place(16),/caretaker/);
+  for(const [i,type] of ['tulip','sunflower','lavender','peony','forget-me-not','jasmine'].entries())await plant(i+15,type);
+  await plant(100,'pink-water-lily');await plant(101,'white-water-lily');await plant(102,'moon-lily');
+  await plant(pondPlot,'pink-water-lily',lily);
+  await assert.rejects(()=>plant(pondPlot,'white-water-lily'),/already holds/);
+  await assert.rejects(()=>db.query('select public.water_seed($1)',[lily]),/caretaker/);
+  await as(caretaker);
+  await assert.rejects(()=>place(16),/active lilies/);
+  await assert.rejects(()=>place(null),/active lilies/);
+  await db.query('select public.water_seed($1)',[lily]);
+  const open=()=>one("select public.open_memory($1,'flower') result",[lily]);
+  await assert.rejects(open,/still growing/);
+  await db.exec('reset role');await db.query("update public.seeds set watered_at=now()-interval '30 minutes' where id=$1",[lily]);
+  await as(caretaker);assert.equal((await open()).result.awarded,10);assert.equal((await open()).result.awarded,0);
+  assert.equal((await one('select balance from public.wallets')).balance,760);
+  await assert.rejects(()=>place(null),/active lilies/);
+  await db.exec('reset role');await db.query("update public.seeds set opened_at=now()-interval '121 seconds' where id=$1",[lily]);
+  await as(caretaker);await place(16);assert.equal((await open()).result.message,'Pond memory');
+  await as(gardener);await assert.rejects(()=>plant(pondPlot,'white-water-lily'),/needs a placed Koi Pond/);
+  const next=crypto.randomUUID();await plant(1000+16*3,'moon-lily',next);
+  await db.query('select public.remove_seed($1)',[next]);
+  await plant(1000+16*3,'white-water-lily');
  });
  await db.close();
 });
