@@ -11,12 +11,15 @@ test('walking routes avoid plots, water, scenery and placed decorations',()=>{
  assert.ok(path.every(p=>map.canWalk(p)));assert.equal(map.canWalk({u:3,v:11}),false);assert.equal(map.canWalk({u:7,v:6}),false);assert.equal(map.canWalk({u:7,v:14}),false);
  for(let i=1;i<path.length;i++)assert.ok(Math.abs(path[i].u-path[i-1].u)+Math.abs(path[i].v-path[i-1].v)<=.5001);
 });
-test('idle routine includes roaming, walking together, sitting and occasional shared bench smoking',()=>{
+test('Labib follows Mehezad and both can still sit together',()=>{
  const state=garden(),before=JSON.stringify(state),history=run(new CharacterDirector(),state,epoch,120);
- assert.ok(history.some(pair=>pair.every(p=>p.pose==='walk')&&Math.hypot(pair[0].x-pair[1].x,pair[0].y-pair[1].y)<35));
+ const separation=([a,b])=>Math.hypot(a.x-b.x,a.y-b.y);
+ assert.ok(history.some(pair=>pair.every(p=>p.pose==='walk')&&separation(pair)<35));
+ const following=history.slice(280,750);
+ assert.ok(following.filter(pair=>separation(pair)<38).length>following.length*.8);
+ assert.ok(following.every(pair=>separation(pair)>=16));
  assert.ok(history.some(pair=>pair.every(p=>p.pose==='sit')));
- assert.ok(history.some(pair=>pair.some(p=>p.person==='labib'&&p.pose==='smoke')));
- for(const pair of history)if(pair.some(p=>p.pose==='smoke'))assert.ok(pair.some(p=>p.person==='mehezad'&&p.pose==='sit'));
+ assert.ok(history.every(pair=>pair.every(p=>!p.gesture)));
  assert.equal(JSON.stringify(state),before);
 });
 test('successful plant and water transitions animate the right person without replaying old records',()=>{
