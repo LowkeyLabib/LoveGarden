@@ -10,7 +10,7 @@ import {useCharacters} from '../garden/useCharacters';
 import {CharacterSprite} from '../garden/CharacterSprite';
 import {DecorationLights,PondLife} from '../garden/DecorationDetails';
 import {connectGardenCamera} from '../garden/camera';
-import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds } from '../garden/world';
+import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds, availablePondSpots, spotById } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
 
 type Props={state:GardenState;now:number;onSpot:(n:number)=>void;onSeed:(s:Seed)=>void;onGift:(g:Gift)=>void;onPlace:(slot:number)=>void;placing:string|null};
@@ -61,10 +61,11 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  const placingItem=state.inventory.find(item=>item.id===placing);
  const placingSize=state.catalog.find(item=>item.id===placingItem?.catalog_id)?.placement_size??0;
  const occupiedBays=new Set(state.decorations.filter(d=>d.inventory_id!==placing).map(d=>d.slot));
+ const waterSpots=useMemo(()=>availablePondSpots(state.decorations),[state.decorations]);
  // Feedback observes public state transitions; rewards and growth remain authoritative.
  useEffect(()=>{
   const next=new Map<string,{watered:boolean;bloom:boolean;claimed:boolean}>(), additions:Effect[]=[];
-  for(const seed of state.seeds.filter(seed=>isActiveFlower(seed,now))){const value={watered:!!seed.watered_at,bloom:growth(seed.watered_at,now,state.epoch)===1,claimed:false};next.set(seed.id,value);const old=previous.current?.get(seed.id),p=spots[seed.spot];if(old&&p){if(!old.watered&&value.watered)additions.push({...p,id:seed.id,kind:'water'});else if(!old.bloom&&value.bloom)additions.push({...p,id:seed.id,kind:'bloom'});}}
+  for(const seed of state.seeds.filter(seed=>isActiveFlower(seed,now))){const value={watered:!!seed.watered_at,bloom:growth(seed.watered_at,now,state.epoch)===1,claimed:false};next.set(seed.id,value);const old=previous.current?.get(seed.id),p=spotById.get(seed.spot);if(old&&p){if(!old.watered&&value.watered)additions.push({...p,id:seed.id,kind:'water'});else if(!old.bloom&&value.bloom)additions.push({...p,id:seed.id,kind:'bloom'});}}
   for(const gift of state.gifts){const value={watered:false,bloom:false,claimed:!!gift.claimed_at};next.set(gift.id,value);const old=previous.current?.get(gift.id),p=hidingPlaces[gift.location];if(old&&!old.claimed&&value.claimed&&p)additions.push({id:gift.id,...p,kind:'gift'});}
   previous.current=next;if(additions.length)setEffects(e=>[...e,...additions]);
  },[state.seeds,state.gifts,state.epoch,now]);
@@ -78,7 +79,23 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
    <title>{seed?`${seed.flower_type} · ${status}`:`Plot ${spot.id+1}`}</title>
   </g>});
  }
- for(const {seed,stage} of departures){const p=spots[seed.spot];if(p&&!state.seeds.some(s=>s.spot===seed.spot&&isActiveFlower(s,now)))objects.push({key:'departing-'+seed.id,x:p.x,y:p.y,node:<g transform={`translate(${p.x} ${p.y})`} pointerEvents="none" aria-hidden="true"><g className="flower-departure"><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{[-15,-7,1,9,17].map((x,i)=><g key={x} transform={`translate(${x} ${-17-i%3*7})`}><path className="departure-petal" d="M0 0h3v2H1v1H0Z" fill={seed.flower_type==='bluebell'?'#b8d8e3':seed.flower_type==='daisy'?'#f7dfa3':'#efbacb'} style={{animationDelay:`${i*.09}s`}}/></g>)}</g></g>});}
+ for(const {seed,stage} of departures){const p=spotById.get(seed.spot);if(p&&(!("pondSlot" in p)||waterSpots.some(w=>w.id===p.id))&&!state.seeds.some(s=>s.spot===seed.spot&&isActiveFlower(s,now)))objects.push({key:'departing-'+seed.id,x:p.x,y:"pondSlot" in p&&p.pondSlot!==null?Math.max(p.y,decorSlots[p.pondSlot].y+1):p.y,node:<g transform={`translate(${p.x} ${p.y})`} pointerEvents="none" aria-hidden="true"><g className="flower-departure"><PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>{[-15,-7,1,9,17].map((x,i)=><g key={x} transform={`translate(${x} ${-17-i%3*7})`}><path className="departure-petal" d="M0 0h3v2H1v1H0Z" fill={seed.flower_type==='bluebell'?'#b8d8e3':seed.flower_type==='daisy'?'#f7dfa3':'#efbacb'} style={{animationDelay:`${i*.09}s`}}/></g>)}</g></g>});}
+ for(const spot of waterSpots){
+  const seed=state.seeds.find(s=>s.spot===spot.id&&isActiveFlower(s,now));
+  const value=seed?growth(seed.watered_at,now,state.epoch):0;
+  const stage=!seed?.watered_at?0:value===1?3:value<.33?1:2;
+  const depth=spot.pondSlot===null?spot.y:Math.max(spot.y,decorSlots[spot.pondSlot].y+1);
+  const label=seed?`${spot.name} · ${seed.flower_type}${stage===3?' in bloom':''}`:spot.name;
+  objects.push({key:`water-${spot.id}`,x:spot.x,y:depth,node:<g transform={`translate(${spot.x} ${spot.y})`}>
+   {seed||state.role==='GARDENER'?<g {...objectProps(label,()=>seed?onSeed(seed):onSpot(spot.id))}>
+    <ellipse className="plot-focus" rx="9" ry="6"/>
+    {seed&&<rect x="-7" y="-15" width="14" height="14" fill="transparent"/>}
+   </g>:null}
+   {seed?<PixelSprite name={`flower-${seed.flower_type}-${stage}`}/>:<PixelSprite name="lily-spot"/>}
+   {seed&&stage===3&&<path className="pond-glimmer" d="M-11 4h6m11-2h5" stroke="#c7e0d1" fill="none" pointerEvents="none"/>}
+   {seed?.flower_type==='moon-lily'&&stage===3&&<circle cy="-10" r="17" fill="url(#lily-light)" opacity={lighting} pointerEvents="none"/>}
+  </g>});
+ }
  for(const gift of state.gifts){const p=hidingPlaces[gift.location];if(!p||gift.claimed_at)continue;objects.push({key:gift.id,...p,node:<g transform={`translate(${p.x} ${p.y})`}><g {...objectProps(`Discover ${gift.kind} ${p.name.toLowerCase()}`,()=>onGift(gift))}><rect className="gift-focus" x="-19" y="-38" width="38" height="45" rx="2"/></g><PixelSprite name={`gift-${gift.kind}`}/><path className="bloom-spark" d="M18-32v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/></g>});}
  for(const decoration of state.decorations){const p=decorSlots[decoration.slot];if(p)objects.push({key:decoration.inventory_id,...p,node:<g data-decoration={decoration.catalog_id} data-slot={decoration.slot} transform={`translate(${p.x} ${p.y})`}><PixelSprite name={decoration.catalog_id}/>{decoration.catalog_id==='koi-pond'&&<PondLife/>}</g>});}
  for(const character of characters)objects.push({key:`character-${character.person}`,x:character.x,y:character.depth,node:<CharacterSprite character={character} layers={wardrobes[character.person]}/>});
@@ -88,6 +105,7 @@ export default function Garden({state,now,onSpot,onSeed,onGift,onPlace,placing}:
  return <div className="garden-world" style={{'--night':lighting} as CSSProperties} data-light={cycle.day?'day':'night'} data-sleeping={!awake} data-angry={state.angryMode} data-rainbow={state.rainbowMode}>
  <svg ref={ref} className="garden-canvas" aria-label={state.angryMode?"Angry Mode: an empty garden under gentle rain. All memories are preserved.":"Interactive isometric LoveGarden. Drag to explore; pinch, scroll, or use buttons to zoom."}>
   <title>Mehezad and Labib's LoveGarden</title>
+  <defs><radialGradient id="lily-light"><stop stopColor="#c0baff" stopOpacity=".62"/><stop offset="1" stopColor="#9289ed" stopOpacity="0"/></radialGradient></defs>
   <defs><radialGradient id="lamp-light"><stop stopColor="#ffda78" stopOpacity=".5"/><stop offset="1" stopColor="#ffd879" stopOpacity="0"/></radialGradient></defs>
   <rect x={gardenBounds.x-1600} y={gardenBounds.y-1000} width={4480} height={2728} fill="transparent" aria-hidden="true"/>
   {state.angryMode?<StormScene>{characters.map(character=><CharacterSprite key={character.person} character={character} layers={wardrobes[character.person]}/>)}</StormScene>:<>

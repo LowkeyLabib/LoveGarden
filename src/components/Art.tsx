@@ -1,6 +1,10 @@
 import { PixelSprite } from '../garden/PixelSprite';
 import type { CSSProperties } from 'react';
 export const flowerColors:Record<string,string>={rose:'#dc8b9e',daisy:'#edcc76',tulip:'#e5a386',lavender:'#a49bca',cosmos:'#db9db9',bluebell:'#89b4cc'};
+Object.assign(flowerColors,{
+ sunflower:'#e1b74e',peony:'#d9849c','forget-me-not':'#86a8d7',jasmine:'#f5ecd5',
+ 'pink-water-lily':'#df95b1','white-water-lily':'#f5edd6','moon-lily':'#9c9ee1',
+});
 export function Icon({name,size=22,...rest}:{name:string;size?:number;className?:string}){
  const paths:Record<string,React.ReactNode>={
  rainbow:<><path d="M2 19v-5a10 10 0 0 1 20 0v5M6 19v-5a6 6 0 0 1 12 0v5M10 19v-5a2 2 0 0 1 4 0v5"/></>,

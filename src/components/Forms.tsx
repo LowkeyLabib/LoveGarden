@@ -4,12 +4,15 @@ import { Icon, Flower, ItemPicture, flowerColors } from './Art';
 import { hidingPlaces, spots } from './Garden';
 import { supabase, rpc, spotifyTrack, uploadPhoto } from '../lib/api';
 import type { GardenState } from '../lib/types';
+import {availablePondSpots,isAquaticFlower,spotById} from '../garden/world';
+import {isActiveFlower} from '../lib/flowers';
 export const giftNames:Record<string,string>={letter:'Love letter',chocolate:'Chocolates',teddy:'Teddy bear',bouquet:'Bouquet',box:'Gift box',special:'Special present'};
 export const date=(value:string)=>new Date(value).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'});
 export const errorMessage=(e:unknown)=>e && typeof e==='object' && 'message' in e ? String(e.message) : 'Something went wrong. Please try again.';
-export const titleCase=(s:string)=>s.charAt(0).toUpperCase()+s.slice(1);
-export function Compose({mode,spot,state,onDone,onCancel}:{mode:'flower'|'gift';spot:number;state:GardenState;onDone:()=>void;onCancel:()=>void}){
- const [type,setType]=useState(mode==='flower'?'rose':'letter'),[location,setLocation]=useState(spot);
+export const titleCase=(s:string)=>s.split('-').map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(' ');
+const isPondSpot=(id:number)=>'pondSlot' in (spotById.get(id)??{});
+export function Compose({mode,spot,state,now,onDone,onCancel}:{mode:'flower'|'gift';spot:number;state:GardenState;now:number;onDone:()=>void;onCancel:()=>void}){
+ const [type,setType]=useState(mode==='flower'?(isPondSpot(spot)?'pink-water-lily':'rose'):'letter'),[location,setLocation]=useState(spot);
  const [message,setMessage]=useState(''),[song,setSong]=useState(''),[caption,setCaption]=useState(''),[file,setFile]=useState<File|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState('');
  const request=useRef(crypto.randomUUID()),photo=useRef<{file:File;path:string}|null>(null);
@@ -18,9 +21,18 @@ export function Compose({mode,spot,state,onDone,onCancel}:{mode:'flower'|'gift';
   let path:string|null=null;if(file){if(photo.current?.file===file)path=photo.current.path;else{path=await uploadPhoto(file);photo.current={file,path};}}
   await rpc(mode==='flower'?'plant_seed':'hide_gift',{p_id:request.current,...(mode==='flower'?{p_spot:location,p_type:type}:{p_location:location,p_kind:type}),p_message:message.trim(),p_spotify:spotify,p_photo:path,p_caption:caption.trim()});onDone();
  }catch(err){setError(errorMessage(err));}finally{setBusy(false);}}
- const options=mode==='flower'?Object.keys(flowerColors):Object.keys(giftNames);
+ const options=mode==='flower'?Object.keys(flowerColors).filter(item=>isAquaticFlower(item)===isPondSpot(location)):Object.keys(giftNames);
+ const locations=mode==='flower'?[
+  ...spots.map(p=>({id:p.id,name:`Flower plot ${p.id+1}`})),
+  ...availablePondSpots(state.decorations),
+ ].filter(p=>!state.seeds.some(s=>s.spot===p.id&&isActiveFlower(s,now))):
+  hidingPlaces.map((p,id)=>({id,name:p.name})).filter(p=>!state.gifts.some(g=>g.location===p.id&&!g.claimed_at));
+ function changeLocation(id:number){
+  setLocation(id);
+  if(mode==='flower'&&isAquaticFlower(type)!==isPondSpot(id))setType(isPondSpot(id)?'pink-water-lily':'rose');
+ }
  return <Modal title={mode==='flower'?'Plant a little love':'Hide a little happiness'} subtitle={mode==='flower'?'A flower on the outside. A memory on the inside.':'A small surprise, waiting just for Mehezad.'} onClose={()=>{if(!busy)onCancel();}}><form onSubmit={submit} className="compose-form"><fieldset disabled={busy}><legend className="sr-only">Create a {mode}</legend><label>Choose your {mode}</label><div className="type-picker">{options.map(item=><button key={item} type="button" aria-pressed={type===item} className={type===item?'selected':''} onClick={()=>setType(item)}>{mode==='flower'?<svg viewBox="-40 -100 80 120" aria-hidden="true"><Flower type={item}/></svg>:<ItemPicture kind={item} gift/>}<span>{mode==='flower'?titleCase(item):giftNames[item]}</span></button>)}</div>
- <label htmlFor="location">{mode==='flower'?'Planting spot':'A hiding place'}</label><select id="location" value={location} onChange={e=>setLocation(Number(e.target.value))}>{(mode==='flower'?spots.filter(p=>!state.seeds.some(s=>s.spot===p.id)).map(p=>({id:p.id,name:`Flower bed ${Math.floor(p.id/5)+1} · spot ${p.id%5+1}`})):hidingPlaces.map((p,id)=>({id,name:p.name})).filter(p=>!state.gifts.some(g=>g.location===p.id&&!g.claimed_at))).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
+ <label htmlFor="location">{mode==='flower'?'Planting spot':'A hiding place'}</label><select id="location" value={location} onChange={e=>changeLocation(Number(e.target.value))}>{locations.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
  <label htmlFor="message">A note from the heart <span>optional with a song or photo</span></label><textarea id="message" maxLength={4000} rows={4} value={message} onChange={e=>setMessage(e.target.value)} placeholder="Something I've been meaning to tell you…"/>
  <label htmlFor="song">Your song <span>optional</span></label><input id="song" type="url" value={song} onChange={e=>setSong(e.target.value)} placeholder="https://open.spotify.com/track/…"/>
  <label htmlFor="photo">A photograph <span>optional · JPG, PNG, WebP · up to 5 MB</span></label><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>setFile(e.target.files?.[0]??null)}/>

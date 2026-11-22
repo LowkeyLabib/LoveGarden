@@ -247,6 +247,54 @@ sprite('fairy-cottage',107,105,c=>{
  c.line(19, 80,27,76,'#6d9162',2);c.line(76,82,89,77,'#739762',2);
 },52,86);
 
+const newBlossom=(c,x,y,kind)=>{
+ if(kind==='sunflower'){
+  for(const [dx,dy] of [[-6,0],[-4,-4],[0,-6],[4,-4],[6,0],[4,4],[0,6],[-4,4]])c.oval(x+dx,y+dy,3,3,'#daa245');
+  c.oval(x,y,7,6,'#f0c654');c.oval(x,y,5,4,'#85533e');c.oval(x-1,y-1,3,2,'#a7734a');c.dot(x-2,y-2,'#d7a867');
+ }else if(kind==='peony'){
+  c.oval(x,y,9,7,'#a25476');c.oval(x-2,y-3,6,5,'#d584a0');c.oval(x+3,y-1,6,5,'#cc6e90');
+  c.oval(x-2,y,5,4,'#eca4b9');c.oval(x+2,y+3,5,3,'#d98ba5');c.line(x-5,y-3,x-2,y-4,'#ffd2cf');c.dot(x,y,'#fff0c6');
+ }else{
+  const jasmine=kind==='jasmine';
+  for(const [dx,dy] of [[0,-2],[-2,0],[2,0],[-1,2],[1,2]])c.rect(x+dx-1,y+dy-1,2,2,jasmine?'#fff3d9':'#93b9e5');
+  c.dot(x,y,jasmine?'#e8cf8f':'#f4d48c');c.dot(x-2,y-1,jasmine?'#fffaf0':'#cfdef3');
+ }
+};
+for(const kind of ['sunflower','peony','forget-me-not','jasmine'])for(let stage=0;stage<4;stage++){
+ sprite(`flower-${kind}-${stage}`,42,53,c=>{
+  shadow(c,21,47,9,4);
+  if(stage===0){c.oval(21,46,6,3,'#6c523e');c.rect(19,44,4,3,'#dabb8a');c.dot(20,44,'#f4dba3');return;}
+  const h=stage===1?10:stage===2?19:kind==='sunflower'?35:kind==='peony'?25:22;
+  c.line(21,47,20,47-h,P.leafDark,2);
+  c.poly([[21,43],[16,35],[10,34],[12,39],[18,44]],P.leafLight);
+  c.poly([[21,40],[25,33],[32,30],[30,36],[25,40]],P.leaf);
+  if(stage===1){c.line(19,38,16,35,P.leafLight);return;}
+  const y=47-h;
+  if(stage===2){c.oval(20,y,4,5,kind==='sunflower'?'#d7a443':kind==='peony'?'#bd7293':kind==='jasmine'?'#ddd6ab':'#7f96c2');c.dot(18,y-2,'#e7d6ad');return;}
+  newBlossom(c,20,y,kind);
+  if(kind==='forget-me-not'||kind==='jasmine')for(const [x,yy] of [[13,y+5],[26,y+3],[29,y+8]]){c.line(21,y+15,x,yy,P.leaf);newBlossom(c,x,yy,kind);}
+ },21,47);
+}
+sprite('lily-spot',19,12,c=>{c.oval(9,6,8,4,'#568f7c');c.line(4,4,10,3,'#83b69d');c.dot(11,6,'#c0d6ab');},9,6);
+for(const [kind,dark,mid,light] of [
+ ['pink-water-lily','#a45e82','#dc91ad','#ffd6d6'],['white-water-lily','#9eaea6','#e6e7d0','#fff5de'],['moon-lily','#66568e','#9b90cb','#d4c7f4'],
+])for(let stage=0;stage<4;stage++){
+ sprite(`flower-${kind}-${stage}`,34,30,c=>{
+  c.oval(17,22,stage===0?7:12,stage===0?3:5,'#5a9b8e');
+  c.oval(16,21,stage===0?6:10,stage===0?2:4,'#467a58');
+  c.oval(15,20,stage===0?5:9,stage===0?2:3,'#83ae72');
+  c.poly([[16,21],[28,18],[26,23]],'#6aa699');
+  c.line(8,21,14,19,'#b6ce91');
+  if(stage===0){c.rect(14,18,3,2,'#cbb480');return;}
+  if(stage===1){c.line(16,19,16,14,'#779c68',2);c.dot(16,14,'#c4d08b');return;}
+  if(stage===2){c.oval(16,14,4,6,dark);c.oval(15,13,3,5,mid);c.rect(14,9,2,3,light);return;}
+  c.poly([[6,15],[12,14],[12,8],[16,11],[19,5],[22,11],[28,13],[24,18],[16,20],[9,18]],dark);
+  c.poly([[7,14],[13,14],[13,8],[17,13],[19,7],[22,13],[27,13],[22,17],[15,18]],mid);
+  c.line(11,14,16,16,light);c.line(16,11,17,15,light);c.line(19,8,19,13,light);c.line(24,13,20,16,light);
+  c.rect(16,15,4,2,kind==='moon-lily'?'#dcdcff':'#efd684');c.line(10,25,15,25,'#a5cbb6');
+ },16,21);
+}
+
 // Packing uses integer coordinates; every sprite has an explicit foot anchor for depth sorting.
 let ax=0,ay=0,rowH=0;const atlasWidth=512,frames={};for(const [name,{c,anchorX,anchorY}]of Object.entries(sprites)){if(ax+c.w+2>atlasWidth){ax=0;ay+=rowH+2;rowH=0;}frames[name]={x:ax,y:ay,w:c.w,h:c.h,anchorX,anchorY};ax+=c.w+2;rowH=Math.max(rowH,c.h);}
 const atlas=new Pixels(atlasWidth,ay+rowH);for(const[name,{c}]of Object.entries(sprites)){const f=frames[name];atlas.paste(c,f.x,f.y);}

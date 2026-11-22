@@ -1,6 +1,6 @@
 {
   "width": 512,
-  "height": 640,
+  "height": 782,
   "frames": {
     "plot": {
       "x": 0,
@@ -545,6 +545,238 @@
       "h": 105,
       "anchorX": 52,
       "anchorY": 86
+    },
+    "flower-sunflower-0": {
+      "x": 411,
+      "y": 535,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-sunflower-1": {
+      "x": 455,
+      "y": 535,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-sunflower-2": {
+      "x": 0,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-sunflower-3": {
+      "x": 44,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-peony-0": {
+      "x": 88,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-peony-1": {
+      "x": 132,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-peony-2": {
+      "x": 176,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-peony-3": {
+      "x": 220,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-forget-me-not-0": {
+      "x": 264,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-forget-me-not-1": {
+      "x": 308,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-forget-me-not-2": {
+      "x": 352,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-forget-me-not-3": {
+      "x": 396,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-jasmine-0": {
+      "x": 440,
+      "y": 642,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-jasmine-1": {
+      "x": 0,
+      "y": 697,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-jasmine-2": {
+      "x": 44,
+      "y": 697,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "flower-jasmine-3": {
+      "x": 88,
+      "y": 697,
+      "w": 42,
+      "h": 53,
+      "anchorX": 21,
+      "anchorY": 47
+    },
+    "lily-spot": {
+      "x": 132,
+      "y": 697,
+      "w": 19,
+      "h": 12,
+      "anchorX": 9,
+      "anchorY": 6
+    },
+    "flower-pink-water-lily-0": {
+      "x": 153,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-pink-water-lily-1": {
+      "x": 189,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-pink-water-lily-2": {
+      "x": 225,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-pink-water-lily-3": {
+      "x": 261,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-white-water-lily-0": {
+      "x": 297,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-white-water-lily-1": {
+      "x": 333,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-white-water-lily-2": {
+      "x": 369,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-white-water-lily-3": {
+      "x": 405,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-moon-lily-0": {
+      "x": 441,
+      "y": 697,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-moon-lily-1": {
+      "x": 0,
+      "y": 752,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-moon-lily-2": {
+      "x": 36,
+      "y": 752,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
+    },
+    "flower-moon-lily-3": {
+      "x": 72,
+      "y": 752,
+      "w": 34,
+      "h": 30,
+      "anchorX": 16,
+      "anchorY": 21
     }
   }
 }

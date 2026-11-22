@@ -1,5 +1,5 @@
 import type {GardenState,Seed} from '../lib/types';
-import {iso,groundPoint,scenery,decorSlots,grid,pondRadius,spots,decorationRadius} from './world.ts';
+import {iso,groundPoint,scenery,decorSlots,grid,pondRadius,spots,decorationRadius,spotById} from './world.ts';
 import {isActiveFlower} from '../lib/flowers.ts';
 export type Person='labib'|'mehezad';
 export type Pose='idle'|'walk'|'sit'|'plant'|'water'|'sad'|'smoke';
@@ -82,7 +82,13 @@ export class CharacterDirector{
    if(!a.job&&a.queue.length){a.job=a.queue.shift()!;a.goal='';a.holdUntil=0;}
    let target:Point,goal:string,rest:Pose='idle';
    if(this.storm){target={u:10,v:10};goal='sad';rest='sad';}
-   else if(a.job&&spots[a.job.spot]){const s=spots[a.job.spot];target={u:s.u,v:s.v+1};goal=a.job.key;rest=a.job.kind;}
+   else if(a.job&&spotById.has(a.job.spot)){
+    const s=spotById.get(a.job.spot)!;
+    if('pondSlot' in s&&s.pondSlot!==null){
+     const bay=decorSlots[s.pondSlot];target={u:bay.u,v:bay.v+1.5};
+    }else target={u:s.u,v:s.v+('pondSlot' in s?(s.v<11.2?-1.8:1.8):1)};
+    goal=a.job.key;rest=a.job.kind;
+   }
    else if(phase>=80){target={u:benchUV.u+offset,v:benchUV.v+1.5};goal=`bench-${cycle}`;rest=a.person==='labib'&&phase>=100&&phase<108&&cycle%2===0?'smoke':'sit';}
    else if(phase>=40||state.rainbowMode){const segment=Math.floor((phase>=40?phase-40:phase)/10)%stroll.length;const p=stroll[segment];target={u:p.u+offset,v:p.v};goal=`together-${cycle}-${phase>=40?1:0}-${segment}`;}
    else{const segment=Math.floor(phase/14);target=wander[a.person][segment%3];goal=`wander-${cycle}-${segment}`;}
@@ -91,7 +97,7 @@ export class CharacterDirector{
    while(a.route.length&&remaining>0){const p=a.route[0],d=distance(a.point,p);if(d>.01)a.direction=directionTo(a.point,p);if(d<=remaining){a.point=p;a.route.shift();remaining-=d;}else{const t=remaining/d;a.point={u:a.point.u+(p.u-a.point.u)*t,v:a.point.v+(p.v-a.point.v)*t};remaining=0;}}
    a.pose=a.route.length?'walk':a.blocked||distance(a.point,target)>28?'idle':rest;
    if(!a.route.length&&a.job&&!a.blocked){
-    const s=spots[a.job.spot];if(s)a.direction=directionTo(a.point,s);
+    const s=spotById.get(a.job.spot);if(s)a.direction=directionTo(a.point,s);
     if(!a.holdUntil)a.holdUntil=now+4200;
     if(now>=a.holdUntil){a.job=null;a.goal='';a.holdUntil=0;a.pose='idle';}
    }
