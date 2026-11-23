@@ -5,8 +5,8 @@ import sharp from 'sharp';
 import {writeFile} from 'node:fs/promises';
 const W=48,H=56,colors={outline:'#252733',black:'#242831',blackLight:'#3c404a',blackShadow:'#171d28',pink:'#d587a3',pinkLight:'#f1b3c7',pinkShadow:'#af647f',jeans:'#46546c'};
 const skin={
- labib:{base:'#ca8f6a',light:'#ecb78a',shade:'#ac7056',edge:'#865448',warm:'#da9876'},
- mehezad:{base:'#d19a7d',light:'#efbd9f',shade:'#ad755f',edge:'#895647',warm:'#e4a18b'},
+ labib:{base:'#e3b594',light:'#f5d2b1',shade:'#cd9d7f',edge:'#cf9e81',warm:'#edc2a4'},
+ mehezad:{base:'#e7baa6',light:'#f8d6c3',shade:'#d3a18e',edge:'#d4a18d',warm:'#efc5b2'},
 };
 const hair={
  labib:{x:'#211e24',d:'#2b272d',m:'#3b333b',h:'#51454d',g:'#62515a'},
@@ -25,30 +25,30 @@ function pixels(c,x,y,rows,palette){
   if(color)c.dot(x+dx,y+dy,color);
  }
 }
-// Labib's swept waves and Mehezad's center part have separate three-quarter
+// Labib's tousled fringe and Mehezad's center part have separate three-quarter
 // silhouettes in each view. East/west mirrors share the existing pixel grid.
 const labibFront=[
- '....xxxxx........',
- '..xxhmmmdxx.xxx..',
- '.xhhmmmdx.xmmmhx.',
- 'xmhgmmddxmmhmmmdx',
- 'xmmhmdxxmhgmmdddx',
- 'xmmdx..xmdmdddddx',
- 'xddx.....xddmmddx',
- 'xmx.......xddmdxx',
- 'xdx........xxdxx.',
- '.x..........xx...',
+ '.....xx..x.......',
+ '...xxmxxxmxxx....',
+ '..xmhmhmmmhmmx...',
+ '.xmhmgmhmmhmmmdx.',
+ 'xmhmhhmmdmmdddddx',
+ 'xmmhmxxmmdxxddmxx',
+ 'xdmmx..xx...xddx.',
+ '.xdx....x....xdx.',
+ '.xdx.........xdx.',
+ '..x...........x..',
 ];
 const labibBack=[
- '....xxx...xxx....',
- '...xmmxxxxmmmx...',
- '..xmhmmdddmmhdx..',
- '.xmhgmddmmhmmddx.',
- 'xmmhdddmhmmddddx.',
- 'xmmdxddmmddmmmddx',
- 'xddxddmmdddmmmddx',
- 'xdxddmddddmmdddxx',
- 'xdxddmdddmmdddxx.',
+ '.......xx.xx.....',
+ '...xxxxmmxmmx....',
+ '..xmhmmhmdmmmxx..',
+ '.xmhgmmhmmmdmhxx.',
+ 'xmmhmmddhmmmddmdx',
+ 'xmmdmddmmddmmmddx',
+ 'xdmdddmmddmmmddxx',
+ 'xddddmmdddmmdddxx',
+ '.xddddddmmmdddxx.',
  '.xdxddddmmddddx..',
  '.xdxxddddddxdx...',
  '..xdxxdddddxx....',
@@ -89,13 +89,13 @@ const faceContours={
   '..ehhhchhhccse.',
   '.eehccchhcccse.',
   'echchhhhhhhcse.',
-  'ecshhhhhhhccse.',
-  'ecswhhhhhhhccse',
-  '.eswhhhwhhccse.',
-  '..esscwhhcsse..',
-  '...essccccsse..',
-  '....essccsse...',
-  '.....esssse....',
+  'ccwhhhhhhhccce.',
+  'ccwhhhhhhhhccce',
+  '.cwwhhhwhhccce.',
+  '..eccwwhhccce..',
+  '...ecccccwce...',
+  '....eccwwce....',
+  '.....eccce.....',
   '......eee......',
  ],
  mehezad:[
@@ -106,13 +106,13 @@ const faceContours={
   '..ehhhchhhccse.',
   '.eehccchhcccse.',
   '.chhhhhhhhhcse.',
-  '.cshhhhhhhhhcse',
-  '.eswhhhhhhhwcse',
-  '..swwhhwhhwwse.',
-  '..escwhhhcse...',
-  '...escchccse...',
-  '....esscsse....',
-  '.....essse.....',
+  '.cwhhhhhhhhhcce',
+  '.ccwhhhhhhhwcce',
+  '..cwwhhwhhwwce.',
+  '..eccwhhhcce...',
+  '...eccchcce....',
+  '....eccwce.....',
+  '.....ecce......',
   '......ee.......',
  ],
 };
@@ -164,7 +164,7 @@ function drawPortrait(c,person,head,pose,frame,back){
  pixels(c,15,head-(girl?4:5),girl?mehezadFront:labibFront,tones);
  const scolding=girl&&gesturePoses.mehezad.includes(pose);
  const closed=pose==='sad'||pose==='embarrassed'&&frame===0;
- const brow='#574043',iris='#34262d',sclera='#f5d9be';
+ const brow='#574043',iris='#34262d',sclera='#fae6d3';
  if(scolding){
   c.rect(19,head+5,2,1,brow);c.dot(21,head+6,brow);
   c.dot(25,head+6,brow);c.rect(26,head+5,2,1,brow);
@@ -193,10 +193,10 @@ function drawPortrait(c,person,head,pose,frame,back){
   c.dot(18,head+10,'#d0a663');
   c.dot(17,head+12,'#ebc77a');c.dot(18,head+13,'#bd9258');
  }else{
-  c.rect(24,head+14,3,1,'#9b6455');c.dot(25,head+15,'#785047');
+  c.rect(24,head+14,3,1,'#bb8a74');c.dot(25,head+15,'#a97a67');
   if(pose==='embarrassed'){
-   c.rect(19,head+10,2,1,'#de9385');
-   c.rect(27,head+10,2,1,'#d9887c');
+   c.rect(19,head+10,2,1,'#ebaf9d');
+   c.rect(27,head+10,2,1,'#ebaf9d');
   }
  }
 }
@@ -321,7 +321,7 @@ const packed = color => Number.parseInt(color.slice(1) + 'ff', 16);
 const portraitPixels = new Set([
  ...Object.values(hair.labib), ...Object.values(hair.mehezad),
  ...Object.values(skin.labib), ...Object.values(skin.mehezad),
- '#9b6455', '#785047', '#d0a663', '#ebc77a', '#bd9258',
+ '#bb8a74', '#a97a67', '#d0a663', '#ebc77a', '#bd9258',
 ].map(packed));
 const shirtPixels = new Set([
  colors.pink, colors.pinkLight, colors.pinkShadow, colors.black, colors.blackLight, colors.blackShadow,
