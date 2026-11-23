@@ -1,9 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { GardenState, Content, Catalog, FashionCatalogItem, FashionVariant, FashionOwnership, EquippedFashion, FashionState, FashionPurchaseResult, FashionEquipResult } from './types';
 import { EPOCH } from './clock.mjs';
+import {readOnly} from '../migration/preview';
+import {previewFetch} from '../migration/readOnly';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-export const supabase = url && key && !url.includes('YOUR_PROJECT') ? createClient(url,key) : null;
+export const supabase = url && key && !url.includes('YOUR_PROJECT') ? createClient(url,key,readOnly?{auth:{storageKey:'lovegarden-readonly-preview',persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},global:{fetch:previewFetch}}:undefined) : null;
 export const catalog:Catalog[] = [
  ['lantern','Fairy lantern','A little golden light for moonlit evenings.',75],['bench','Garden bench','A quiet place to sit together, always.',100],['butterfly','Butterfly haven','A gathering place for fluttering friends.',150],['arch','Flower arch','A doorway wrapped in climbing roses.',200],['fountain','Little fountain','A soft ripple, a wish, a moment of peace.',250],['cottage','Tiny cottage','A storybook home for your sweetest dreams.',500],['birdhouse','Songbird house','A home for the morning chorus.',125],['heart','Heart ornament','A small reminder of a very big love.',80],['tree','Wishing tree','Tie a little hope to every branch.',300],['seasonal','Harvest pumpkins','Warm autumn colors for your world.',90],
 ].map(([id,name,description,price])=>({id:String(id),name:String(name),description:String(description),price:Number(price),category:'DECORATION'}));
