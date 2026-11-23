@@ -318,6 +318,11 @@ const desiStyles=[
 fashionStyles.push(...desiStyles);
 
 const packed = color => Number.parseInt(color.slice(1) + 'ff', 16);
+const portraitPixels = new Set([
+ ...Object.values(hair.labib), ...Object.values(hair.mehezad),
+ ...Object.values(skin.labib), ...Object.values(skin.mehezad),
+ '#9b6455', '#785047', '#d0a663', '#ebc77a', '#bd9258',
+].map(packed));
 const shirtPixels = new Set([
  colors.pink, colors.pinkLight, colors.pinkShadow, colors.black, colors.blackLight, colors.blackShadow,
  '#f7c9d5', '#ebafc2', '#53505a', '#777078',
@@ -509,6 +514,12 @@ function drawFashion(style,pose,frame,back){
  if(pose==='water')c.line(29,top+4,33,top+7,style.main,3);
  if(pose==='smoke'){const raised=frame===1||frame===2;c.line(29,top+4,raised?30:33,raised?top-2:top+8,style.main,3);}
  if(hand)c.rect(hand.x,hand.y,3,2,[0,0,0,0]);
+ // The cloth atlas sits above the base sprite. Preserve the hair silhouette,
+ // jaw, and hands from the same pose when the garment crosses them.
+ const base=draw(style.person,pose,frame,back);
+ for(let offset=0;offset<c.data.length;offset+=4){
+  if(c.data[offset+3]&&portraitPixels.has(base.readUInt32BE(offset)))c.data.writeUInt32BE(0,offset);
+ }
  return c.data;
 }
 const fashionColumns=48,fashionAtlas=Buffer.alloc(fashionColumns*W*Math.ceil(fashionStyles.length*poses.length*directions.length*4/fashionColumns)*H*4);let fashionIndex=0;

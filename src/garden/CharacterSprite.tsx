@@ -58,7 +58,7 @@ export function CharacterSprite({character,layers}:{character:CharacterPose;laye
  });
  return <g transform={`translate(${Math.round(x)} ${Math.round(y)})`} pointerEvents="none" aria-hidden="true" data-character={person} data-pose={pose} data-gesture={character.gesture}>
   <svg x={-f.anchorX} y={-f.anchorY} width={f.w} height={f.h} viewBox={`${f.x} ${f.y} ${f.w} ${f.h}`} overflow="hidden"><image href="/art/characters.png" width={atlas.width} height={atlas.height} style={{imageRendering:'pixelated'}}/></svg>
-  {character.gesture==='hurry'&&direction.startsWith('s')&&<path transform={`translate(0 ${frame%2})`} d="M-5-28h2v1h1v1h-2v-1h-1zm6 1h1v-1h2v1H3v1H1z" fill="#51333d" shapeRendering="crispEdges"/>}
+  {character.gesture==='hurry'&&direction.startsWith('s')&&<path transform={`translate(0 ${frame%2-1})`} d="M-5-28h2v1h1v1h-2v-1h-1zm6 1h1v-1h2v1H3v1H1z" fill="#51333d" shapeRendering="crispEdges"/>}
   {clothing.map(({sprite,layer})=><svg key={sprite} x={-layer.anchorX} y={-layer.anchorY} width={layer.w} height={layer.h} viewBox={`${layer.x} ${layer.y} ${layer.w} ${layer.h}`} overflow="hidden"><image href={layer.source} width={fashion.width} height={layer.height} style={{imageRendering:'pixelated'}}/></svg>)}
   <GestureEffects character={character}/>
   {character.idleHeart&&!hearts&&<path className="character-hearts" style={{animationDuration:'1.25s',animationIterationCount:1}} d="M-2-45h2v1h1v-1h2v3H2v1H1v1H0v-1h-1v-1h-1Z" fill="#e6a0b0"/>}
