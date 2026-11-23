@@ -27,7 +27,7 @@ export class GardenScene extends Phaser.Scene {
  preload(){
   this.load.image('ground','/art/phaser-meadow.png');
   this.load.image('trees','/art/phaser-canopies.png');
-  this.load.image('objects','/art/atlas.png');
+  this.load.image('objects','/art/phaser-objects.png');
   this.load.image('rainbow','/art/rainbow.png');
  }
  private sprite(name:FrameName,x:number,y:number,depth:number){
