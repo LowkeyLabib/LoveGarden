@@ -42,9 +42,10 @@ export function moveCamera(camera: Camera, viewport: Size, from: Point, to: Poin
  }, viewport);
 }
 
-export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => void) {
+export function connectGardenCamera(svg: SVGSVGElement | HTMLElement, onInteraction?: () => void,
+ onView?: (x:number,y:number,scale:number,size:Size)=>void, overview=false) {
  let viewport: Size = { width: 1, height: 1 };
- let camera = initialCamera;
+ let camera = overview ? {x:gardenBounds.x+gardenBounds.width/2,y:gardenBounds.y+gardenBounds.height/2,zoom:0} : initialCamera;
  let paintedCamera = camera;
  let resetTarget: Camera | undefined;
  let notifyInteraction = onInteraction;
@@ -63,7 +64,8 @@ export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => vo
   const scale = unitsPerPixel(camera, viewport);
   const width = viewport.width * scale;
   const height = viewport.height * scale;
-  svg.setAttribute('viewBox', `${camera.x - width / 2} ${camera.y - height / 2} ${width} ${height}`);
+  if(onView)onView(camera.x,camera.y,1/scale,viewport);
+  else svg.setAttribute('viewBox', `${camera.x - width / 2} ${camera.y - height / 2} ${width} ${height}`);
   paintedCamera = camera;
  };
 
@@ -247,13 +249,14 @@ export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => vo
  const observer = new ResizeObserver(resize);
  resize();
  observer.observe(svg);
- svg.addEventListener('pointerdown', down);
- svg.addEventListener('pointermove', move);
- svg.addEventListener('pointerup', up);
- svg.addEventListener('pointercancel', interrupt);
- svg.addEventListener('click', click, true);
- svg.addEventListener('dragstart', preventDrag);
- svg.addEventListener('wheel', wheel, { passive: false });
+ const input: GlobalEventHandlers = svg;
+ input.addEventListener('pointerdown', down);
+ input.addEventListener('pointermove', move);
+ input.addEventListener('pointerup', up);
+ input.addEventListener('pointercancel', interrupt);
+ input.addEventListener('click', click, true);
+ input.addEventListener('dragstart', preventDrag);
+ input.addEventListener('wheel', wheel, { passive: false });
  window.addEventListener('blur', cancelGesture);
  document.addEventListener('visibilitychange', cancelGesture);
  document.addEventListener('lostpointercapture', interrupt);
@@ -268,13 +271,13 @@ export function connectGardenCamera(svg: SVGSVGElement, onInteraction?: () => vo
   dispose: () => {
    observer.disconnect();
    window.cancelAnimationFrame(frame);
-   svg.removeEventListener('pointerdown', down);
-   svg.removeEventListener('pointermove', move);
-   svg.removeEventListener('pointerup', up);
-   svg.removeEventListener('pointercancel', interrupt);
-   svg.removeEventListener('click', click, true);
-   svg.removeEventListener('dragstart', preventDrag);
-   svg.removeEventListener('wheel', wheel);
+   input.removeEventListener('pointerdown', down);
+   input.removeEventListener('pointermove', move);
+   input.removeEventListener('pointerup', up);
+   input.removeEventListener('pointercancel', interrupt);
+   input.removeEventListener('click', click, true);
+   input.removeEventListener('dragstart', preventDrag);
+   input.removeEventListener('wheel', wheel);
    window.removeEventListener('blur', cancelGesture);
    document.removeEventListener('visibilitychange', cancelGesture);
    document.removeEventListener('lostpointercapture', interrupt);
