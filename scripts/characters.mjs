@@ -149,9 +149,15 @@ function drawLongHair(c,head,sway,back){
 function drawPortrait(c,person,head,pose,frame,back){
  const girl=person==='mehezad',tone=skin[person],tones=hair[person];
  if(back){
-  if(girl)drawLongHair(c,head,pose==='walk'?[0,1,0,-1][frame]:0,true);
+  const sway=pose==='walk'?[0,1,0,-1][frame]:0;
+  if(girl)drawLongHair(c,head,sway,true);
   pixels(c,15,head-(girl?4:5),girl?mehezadBack:labibBack,tones);
-  if(!girl){
+  if(girl){
+   // Broken ribbons of reflected light follow the long locks towards the hem.
+   c.line(22,head+5,24,head+11,tones.h);
+   c.line(24,head+13,25+sway,head+19,tones.m);
+   c.line(28+sway,head+17,27+sway,head+24,tones.m);
+  }else{
    c.rect(17,head+6,2,4,tone.shade);
    c.dot(17,head+7,tone.light);
    c.rect(21,head+11,8,3,tone.shade);
@@ -162,6 +168,14 @@ function drawPortrait(c,person,head,pose,frame,back){
  pixels(c,16,head+1,faceContours[person],{e:tone.edge,c:tone.base,h:tone.light,s:tone.shade,w:tone.warm});
  if(girl)drawLongHair(c,head,pose==='walk'?[0,1,0,-1][frame]:0,false);
  pixels(c,15,head-(girl?4:5),girl?mehezadFront:labibFront,tones);
+ if(girl){
+  c.line(17,head+8,16,head+12,tones.h);
+  c.dot(31,head+15,tones.h);
+ }else{
+  c.line(18,head-1,21,head-3,tones.h);
+  c.dot(21,head-3,tones.g);
+  c.line(25,head-2,27,head,tones.m);
+ }
  const scolding=girl&&gesturePoses.mehezad.includes(pose);
  const closed=pose==='sad'||pose==='embarrassed'&&frame===0;
  const brow='#574043',iris='#34262d',sclera='#fae6d3';

@@ -1,6 +1,6 @@
 # Phaser migration
 
-Local checkpoint on feature/phaser-migration. Run `npm run dev` and open `/?renderer=phaser`. Use `/?renderer=legacy` for comparison. Both use an isolated anonymous session with read-only HTTP access. Development defaults to the checkpoint. The ordinary built application retains the original authenticated flow.
+The feature build opens the playable Phaser garden at /. Sign-in, dialogs and writes use the existing app and Supabase permissions. Development and explicit `/?readonly=1` review links use an isolated anonymous session. Use `/?renderer=legacy&readonly=1` to compare the original renderer.
 
 | Feature | Existing source of truth |
 | --- | --- |
@@ -15,6 +15,8 @@ Local checkpoint on feature/phaser-migration. Run `npm run dev` and open `/?rend
 | Day/night music, chime, Spotify ducking, reduced motion, install/update and offline shell | audio modules, App, Vite PWA |
 | Authentication, guest restrictions and synchronization | Supabase Auth/RLS and App's existing realtime subscription |
 
-Only the world view is replaced in the checkpoint. React owns dialogs, menus and audio. Phaser receives snapshots and owns one canvas, its animation loop, viewport and scene resources. The legacy renderer remains available for gameplay comparison. Security/economy tests run against in-memory PGlite. Full gameplay parity requires later checkpoints.
+Only the world view is replaced in the checkpoint. React owns dialogs, menus and audio. Phaser receives snapshots and owns one canvas, its animation loop, viewport and scene resources. The legacy renderer remains available for gameplay comparison. Security/economy tests run against in-memory PGlite. The shared SVG input layer uses the same view as the Phaser camera for pointer, touch and keyboard selection.
 
-World checkpoint: the Phaser scene renders the original world anchors and public object snapshots with a native-resolution meadow, four tree crowns, glowing lamps, koi, petals and ripples. Regenerate the trees first with `node scripts/phaser-canopies.mjs`, then run `node scripts/phaser-meadow.mjs` to bake their shadows and pond reflections. Run `node scripts/phaser-materials.mjs` for the cottage, wood and soil artwork. For visual review, add `&view=overview` or `&light=day` / `&light=night` to the Phaser preview URL. Lighting overrides affect presentation only. Angry Mode uses the original view. Characters and actionable world objects are reserved for subsequent checkpoints.
+World checkpoint: the Phaser scene renders the original world anchors and public object snapshots with a native-resolution meadow, four tree crowns, glowing lamps, koi, petals and ripples. Regenerate the trees first with `node scripts/phaser-canopies.mjs`, then run `node scripts/phaser-meadow.mjs` to bake their shadows and pond reflections. Run `node scripts/phaser-materials.mjs` for the cottage, wood and soil artwork. For visual review, add `&view=overview` or `&light=day` / `&light=night` to the Phaser preview URL. Lighting overrides affect presentation only. Angry Mode switches terrain and uses the existing rain overlay and solitary character behavior.
+
+Character checkpoint: Phaser draws the original portraits, garments and gesture frames in depth-sorted containers. The legacy and Phaser views share the same director, timeline and clothing selection. After editing the character art, run `node scripts/characters.mjs` followed by `node scripts/phaser-wardrobe.mjs` to rebuild the independently loadable outfit sheets.

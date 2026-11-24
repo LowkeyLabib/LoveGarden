@@ -65,7 +65,7 @@ export function connectGardenCamera(svg: SVGSVGElement | HTMLElement, onInteract
   const width = viewport.width * scale;
   const height = viewport.height * scale;
   if(onView)onView(camera.x,camera.y,1/scale,viewport);
-  else svg.setAttribute('viewBox', `${camera.x - width / 2} ${camera.y - height / 2} ${width} ${height}`);
+  if(!onView||svg.namespaceURI==='http://www.w3.org/2000/svg')svg.setAttribute('viewBox', `${camera.x - width / 2} ${camera.y - height / 2} ${width} ${height}`);
   paintedCamera = camera;
  };
 
