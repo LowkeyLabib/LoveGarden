@@ -1,3 +1,4 @@
+import {catRows} from './shontu.ts';
 import {groundPoint,iso,scenery} from './world.ts';
 import type {CharacterPose,Person,Point,WalkingMap} from './characters.ts';
 
@@ -8,7 +9,7 @@ export const activities={
 } as const; // Minimum/maximum duration, selection weight, individual cooldown (seconds).
 export type Moment=keyof typeof activities;
 export type MomentPose={kind:Moment;elapsed:number;duration:number;initiator:Person};
-export const momentRows=['hands','hug','shoulder','stars','flower','chase','hair','dance','cuddle','kiss','receive-kiss'] as const;
+export const momentRows=['hands','hug','shoulder','stars','flower','chase','hair','dance','cuddle','kiss','receive-kiss',...catRows] as const;
 export const momentRow=(m:MomentPose,person:Person)=>m.kind==='kiss'&&m.initiator!==person?'receive-kiss':m.kind;
 export function momentFrame(m:MomentPose){
  const {kind,elapsed:t,duration:d}=m;

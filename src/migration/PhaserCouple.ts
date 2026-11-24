@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import {momentCell,momentEffects,momentTexture} from '../garden/momentArt';
+import {contactCell,momentCell,momentEffects,momentTexture} from '../garden/momentArt';
+import catFrames from '../garden/shontuFrames.json';
 import atlas from '../garden/characters.json';
 import fashion from '../garden/fashion.json';
 import {CharacterTimeline} from '../garden/characterTimeline';
@@ -56,6 +57,8 @@ function drawExpression(g:Phaser.GameObjects.Graphics,p:CharacterPose,clock:numb
 // interpolates between its 80 ms samples and owns no independent animation loop.
 export class PhaserCouple {
  private actors:Record<Person,ReturnType<typeof actor>>;
+ private supportingHands:Phaser.GameObjects.Graphics;
+ private cat:Phaser.GameObjects.Image;
  private timeline=new CharacterTimeline();
  private outfits:Record<Person,string[]>={labib:[],mehezad:[]};
  private loading=new Set<string>();
@@ -66,6 +69,8 @@ export class PhaserCouple {
  private refresh=true;
  private reduced=false;
  constructor(private scene:Phaser.Scene){
+  this.supportingHands=scene.add.graphics();
+  this.cat=scene.add.image(0,0,'shontu',0).setOrigin(.5,49/56).setScale(.85);
   const tex=scene.textures.get('couple');
   for(const [name,f] of Object.entries(atlas.frames))tex.add(name,0,f.x,f.y,f.w,f.h);
   this.actors={labib:actor(scene,'labib'),mehezad:actor(scene,'mehezad')};
@@ -78,6 +83,7 @@ export class PhaserCouple {
    scene.load.off(Phaser.Loader.Events.FILE_LOAD_ERROR,this.failed,this);
   });
  }
+ get wildlife(){return this.timeline.cat(this.serverNow+performance.now()-this.localNow,this.reduced);}
  private pause(){this.timeline.pause();this.refresh=true;}
  private loaded(key:string){if(this.loading.delete(key))this.refresh=true;}
  private failed(file:Phaser.Loader.File){this.loading.delete(file.key);}
@@ -102,6 +108,10 @@ export class PhaserCouple {
   const now=this.serverNow+performance.now()-this.localNow;
   const current=this.timeline.sample(this.state,now,reduced,this.refresh);
   this.refresh=false;
+  const cat=this.timeline.cat(now,reduced);
+  this.supportingHands.clear().setDepth(cat.depth+.1);
+  this.cat.setVisible(!this.state.angryMode).setPosition(Math.round(cat.x-cat.lift*.3),Math.round(cat.y-cat.lift)).setDepth(cat.depth)
+   .setFrame(catFrames.indexOf(cat.art)*16+directions.indexOf(cat.direction)*4+cat.frame);
   for(const person of people){
    const a=this.actors[person],p=current.find(p=>p.person===person);
    a.group.setVisible(!!p);
@@ -113,7 +123,7 @@ export class PhaserCouple {
    const depth=previous.depth+(p.depth-previous.depth)*progress;
    a.group.setPosition(x,y).setDepth(depth+x*.000001);
    const frame=gestureFrame(p);
-   const cell=p.moment?momentCell(p.moment,person,p.direction):null;
+   const cell=p.catPose?contactCell(p):p.moment?momentCell(p.moment,person,p.direction):null;
    const bodyKey=cell?'moment/'+person:'couple';
    const bodyFrame=cell?.index??(person+'-'+frame.pose+'-'+frame.direction+'-'+frame.frame);
    if(a.body.texture.key!==bodyKey)a.body.setTexture(bodyKey,bodyFrame);
@@ -125,6 +135,9 @@ export class PhaserCouple {
     else layer.setVisible(false);
    });
    drawExpression(a.effects,p,now,reduced);
+   if(p.catPose&&cat.lift>1){
+    this.supportingHands.fillStyle(person==='labib'?0xf5d2b1:0xf8d6c3).fillRect(x+5,y-12,4,2).fillRect(x+13,y-13,3,2);
+   }
   }
  }
 }

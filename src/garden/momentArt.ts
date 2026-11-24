@@ -11,6 +11,10 @@ export function momentCell(m:MomentPose,person:Person,direction:CharacterPose['d
  const column=['se','sw','ne','nw'].indexOf(direction)*4+momentFrame(m);
  return {row,column,index:row*16+column};
 }
+export function contactCell(p:CharacterPose){
+ const row=momentRows.indexOf(p.catPose!),column=['se','sw','ne','nw'].indexOf(p.direction)*4+p.frame;
+ return {row,column,index:row*16+column};
+}
 export const momentTexture=(ref:string)=>'/art/moments/'+ref.replace(/^fashion\//,'').replaceAll('/','-')+'.png';
 
 type Pixel=(x:number,y:number,w:number,h:number,color:number,alpha:number)=>void;

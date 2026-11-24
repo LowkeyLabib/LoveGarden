@@ -10,6 +10,7 @@ import StormScene from './StormScene';
 import { PixelSprite } from '../garden/PixelSprite';
 import {wardrobeLayers} from '../garden/characterFrames';
 import {useCharacters} from '../garden/useCharacters';
+import catFrames from '../garden/shontuFrames.json';
 import {CharacterSprite} from '../garden/CharacterSprite';
 import {DecorationLights,PondLife,SceneryLife,MushroomFireflies} from '../garden/DecorationDetails';
 import {connectGardenCamera} from '../garden/camera';
@@ -25,7 +26,7 @@ export default function Garden({phaser=false,state,now,onSpot,onSeed,onGift,onPl
  const onEngineError=useCallback(()=>setEngineFailed(true),[]);
  const canvas=phaser&&!engineFailed;
  const bridge=useRef<ViewBridge>({}).current;
- const characters=useCharacters(state,now,!canvas);
+ const {poses:characters,cat}=useCharacters(state,now,!canvas);
  const wardrobes=useMemo(()=>wardrobeLayers(state.fashion),[state.fashion]);
  const ref=useRef<SVGSVGElement>(null);
  const camera=useRef<ReturnType<typeof connectGardenCamera>>(null);
@@ -99,6 +100,10 @@ export default function Garden({phaser=false,state,now,onSpot,onSeed,onGift,onPl
  }
  for(const gift of state.gifts){const p=hidingPlaces[gift.location];if(!p||gift.claimed_at)continue;objects.push({key:gift.id,...p,node:<g transform={`translate(${p.x} ${p.y})`}><g {...objectProps(`Discover ${gift.kind} ${p.name.toLowerCase()}`,()=>onGift(gift))}><rect className="gift-focus" x="-19" y="-38" width="38" height="45" rx="2"/></g>{!canvas&&<PixelSprite name={`gift-${gift.kind}`}/>}<path className="bloom-spark" d="M18-32v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/></g>});}
  for(const decoration of state.decorations){const p=decorSlots[decoration.slot];if(p&&(!canvas||decoration.catalog_id==='koi-pond'))objects.push({key:decoration.inventory_id,...p,node:<g data-decoration={decoration.catalog_id} data-slot={decoration.slot} transform={`translate(${p.x} ${p.y})`}>{!canvas&&<PixelSprite name={decoration.catalog_id}/>}{decoration.catalog_id==='koi-pond'&&<PondLife/>}</g>});}
+ if(!canvas&&cat&&!state.angryMode){
+  const row=catFrames.indexOf(cat.art),col=['se','sw','ne','nw'].indexOf(cat.direction)*4+cat.frame;
+  objects.push({key:'shontu',x:cat.x,y:cat.depth,node:<g pointerEvents="none" transform={`translate(${cat.x-cat.lift*.3} ${cat.y-cat.lift}) scale(.85)`}><svg x={-24} y={-49} width={48} height={56} viewBox={`${col*48} ${row*56} 48 56`} overflow="hidden"><image href="/art/shontu.png" width={768} height={catFrames.length*56}/></svg></g>});
+ }
  if(!canvas)for(const character of characters)objects.push({key:`character-${character.person}`,x:character.x,y:character.depth,node:<CharacterSprite character={character} layers={wardrobes[character.person]}/>});
  objects.sort((a,b)=>a.y-b.y||a.x-b.x);
  const cottages=scenery.filter(s=>s.name==='cottage').concat(state.decorations.filter(d=>d.catalog_id==='cottage'&&decorSlots[d.slot]).map(d=>({name:'cottage',...decorSlots[d.slot]}))); 

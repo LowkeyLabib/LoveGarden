@@ -1,3 +1,4 @@
+import {Shontu,type HumanCatPose} from './shontu.ts';
 import {LittleMoments,type MomentPose} from './littleMoments.ts';
 import {clockState} from '../lib/clock.mjs';
 import type {GardenState,Seed} from '../lib/types';
@@ -8,7 +9,7 @@ export type Pose='idle'|'walk'|'sit'|'plant'|'water'|'sad'|'smoke';
 export type Direction='se'|'sw'|'ne'|'nw';
 export type Point={u:number;v:number};
 export type Gesture='lookout'|'light'|'smoking'|'surprised'|'hurry'|'scold'|'bonk'|'snatch'|'throw'|'embarrassed';
-export type CharacterPose={person:Person;pose:Pose;direction:Direction;frame:number;x:number;y:number;depth:number;hearts:boolean;gesture?:Gesture;gestureTime?:number;idleHeart?:boolean;moment?:MomentPose};
+export type CharacterPose={person:Person;pose:Pose;direction:Direction;frame:number;x:number;y:number;depth:number;hearts:boolean;gesture?:Gesture;gestureTime?:number;idleHeart?:boolean;moment?:MomentPose;catPose?:HumanCatPose};
 type Job={key:string;seedId:string;kind:'plant'|'water';spot:number;time:number};
 type Actor={person:Person;point:Point;direction:Direction;pose:Pose;route:Point[];goal:string;queue:Job[];job:Job|null;holdUntil:number;blocked:boolean;retryAt:number};
 type Activity={target:Point;goal:string;rest?:Pose;seat?:Point;speed?:number};
@@ -156,6 +157,8 @@ export class CharacterDirector{
  private lastNow:number|null=null;
  private nextSmokeAt=0;
  private smokeBlock:number|null=null;
+ readonly cat=new Shontu();
+ private restSites:{x:number;y:number}[]=[];
  private moments=new LittleMoments();
  private scene:SmokingScene|null=null;
  private previousSeeds:Map<string,Seed>|null=null;
@@ -166,6 +169,7 @@ export class CharacterDirector{
  private bench=scenery.find(s=>s.name==='bench')!;
 
  pause(){
+  this.cat.cancel();
   if(this.moments.active)this.moments.cancel(this.lastNow??0);
   if(this.scene)this.nextSmokeAt=(this.lastNow??0)+smokingCooldown;
   this.scene=null;
@@ -323,8 +327,14 @@ export class CharacterDirector{
   this.decorations=state.decorations;
   if(layoutChanged||this.storm!==state.angryMode){
    if(this.moments.active)this.moments.cancel(now);
+   this.cat.cancel();
+   this.restSites=state.decorations.flatMap(d=>decorSlots[d.slot]?[decorSlots[d.slot]]:[]);
    const stormChanged=this.storm!==state.angryMode;
    this.storm=state.angryMode;this.map=new WalkingMap(state.decorations,this.storm);
+   if(!this.storm&&!this.map.canWalk(this.cat.point)){
+    const exit=this.map.path(this.cat.point,{u:5.5,v:7.5})?.find(p=>this.map.canWalk(p));
+    if(exit)this.cat.point=exit;
+   }
    const placed=[...state.decorations].filter(d=>d.catalog_id==='bench'&&decorSlots[d.slot]).sort((a,b)=>a.inventory_id.localeCompare(b.inventory_id))[0];
    this.bench=placed?{name:'bench',...decorSlots[placed.slot]}:scenery.find(s=>s.name==='bench')!;
    if(stormChanged)this.pause();
@@ -371,10 +381,27 @@ export class CharacterDirector{
   const wasActive=this.moments.active;
   if(busy&&wasActive)this.moments.cancel(now);
   const shared=busy?null:this.moments.step(now,seconds,!clockState(now,state.epoch).day&&!state.rainbowMode,
-   phase>=16&&!social,[a,b],this.map,this.bench);
+   phase>=16&&!social&&!this.cat.reserved,[a,b],this.map,this.bench);
   if(wasActive!==this.moments.active){
    for(const actor of this.actors){actor.route=[];actor.goal='';}
    this.resetTrail();
+  }
+  const wasReserved=this.cat.reserved;
+  if(!this.storm)this.cat.step(now,seconds,this.map,this.actors,!busy&&!shared&&(wasReserved||phase>=16&&!social),!clockState(now,state.epoch).day,shared?.moment?.kind,this.restSites);
+  if(wasReserved!==this.cat.reserved){
+   for(const actor of this.actors){actor.goal='';actor.route=[];}
+   this.resetTrail();
+  }
+  if(this.cat.reserved){
+   for(const actor of this.actors)if(!this.cat.participates(actor.person)){
+    const target=stroll[Math.abs(cycle+Math.floor(phase/13))%stroll.length];
+    this.walk(actor,{target,goal:'cat-stroll-'+Math.floor(phase/13)},seconds,now,actor===a?b.point:a.point);
+   }
+   return this.actors.map(actor=>{
+    const p=iso(actor.point.u,actor.point.v);
+    return {...p,depth:p.y,person:actor.person,pose:actor.pose,direction:actor.direction,
+     catPose:this.cat.humans.get(actor.person),frame:Math.floor(now/240)%4,hearts:state.rainbowMode};
+   });
   }
   if(shared)return this.actors.map((actor,i)=>{
    const p=iso(actor.point.u,actor.point.v);

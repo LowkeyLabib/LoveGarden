@@ -29,5 +29,5 @@ export function useCharacters(state:GardenState,now:number,enabled=true){
   document.addEventListener('visibilitychange',resume);motion.addEventListener('change',resume);resume();
   return()=>{disposed=true;cancelAnimationFrame(handle);draw.current=()=>{};document.removeEventListener('visibilitychange',resume);motion.removeEventListener('change',resume);};
  },[enabled]);
- return poses;
+ return {poses,cat:director.current?.cat(now,window.matchMedia("(prefers-reduced-motion: reduce)").matches)};
 }

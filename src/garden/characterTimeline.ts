@@ -4,6 +4,7 @@ import type {GardenState} from '../lib/types';
 export const characterStepMs=80;
 export class CharacterTimeline {
  private director=new CharacterDirector();
+ cat(now:number,reduced:boolean){return this.director.cat.frame(now,reduced);}
  private tick:number|null=null;
  previous:CharacterPose[]=[];
  current:CharacterPose[]=[];

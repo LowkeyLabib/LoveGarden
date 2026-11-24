@@ -20,6 +20,7 @@ export class GardenScene extends Phaser.Scene {
  private lighting=new Map<Image,Image>();
  private ambient:Drift[]=[];
  private night=0;
+ private butterflies:{image:Image;x:number;y:number}[]=[];
  private couple?:PhaserCouple;
  private veil?:Phaser.GameObjects.Rectangle;
  private rainbow?:Image;
@@ -34,6 +35,7 @@ export class GardenScene extends Phaser.Scene {
   this.load.image('trees','/art/phaser-canopies.png');
   this.load.image('objects','/art/phaser-objects.png');
   for(const person of ['labib','mehezad'])this.load.spritesheet('moment/'+person,'/art/moments/'+person+'.png',{frameWidth:48,frameHeight:56});
+  this.load.spritesheet('shontu','/art/shontu.png',{frameWidth:48,frameHeight:56});
   this.load.image('couple','/art/characters.png');
   this.load.image('rainbow','/art/rainbow.png');
  }
@@ -68,6 +70,7 @@ export class GardenScene extends Phaser.Scene {
    const image=this.sprite(p.name as FrameName,p.x,p.y,p.y);
    this.lantern(image,p.name);
    if(p.name==='willow'||p.name==='bush')this.ambient.push({image,x:p.x,y:p.y,kind:'foliage'});
+   if(p.name==='butterfly-small')this.butterflies.push({image,x:p.x,y:p.y});
    if(p.name==='koi')this.ambient.push({image,x:p.x,y:p.y,kind:'koi'});
    if(p.name==='cherry')this.drift('petal',p.x+7,p.y-38,p.y+.01);
    if(p.name==='lantern')this.drift('firefly',p.x+16,p.y-18,3100);
@@ -131,6 +134,11 @@ export class GardenScene extends Phaser.Scene {
  update(time:number){
   this.couple?.update(this.motion.matches);
   if(this.storm)return;
+  const cat=this.couple?.wildlife;
+  this.butterflies.forEach((b,i)=>{
+   const escape=cat?.prey===i?cat.escape:0;
+   b.image.setPosition(b.x+Math.round(escape*27),b.y-Math.round(escape*16));
+  });
   const t=this.motion.matches?0:time*.001;
   for(let i=0;i<this.ambient.length;i++){
    const {image,kind,x,y}=this.ambient[i],phase=t+i*2.27;
