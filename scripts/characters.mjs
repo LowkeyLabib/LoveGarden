@@ -2,7 +2,9 @@
  * Rebuild: node scripts/characters.mjs. All art uses integer pixels and the garden's light direction.
  */
 import sharp from 'sharp';
-import {writeFile} from 'node:fs/promises';
+import {striding,seated as resting,momentHand,expression,carriedFlower,posture} from './moment-art.mjs';
+import {momentRows} from '../src/garden/littleMoments.ts';
+import {mkdir,writeFile} from 'node:fs/promises';
 const W=48,H=56,colors={outline:'#252733',black:'#242831',blackLight:'#3c404a',blackShadow:'#171d28',pink:'#d587a3',pinkLight:'#f1b3c7',pinkShadow:'#af647f',jeans:'#46546c'};
 const skin={
  labib:{base:'#e3b594',light:'#f5d2b1',shade:'#cd9d7f',edge:'#cf9e81',warm:'#edc2a4'},
@@ -149,7 +151,7 @@ function drawLongHair(c,head,sway,back){
 function drawPortrait(c,person,head,pose,frame,back){
  const girl=person==='mehezad',tone=skin[person],tones=hair[person];
  if(back){
-  const sway=pose==='walk'?[0,1,0,-1][frame]:0;
+  const sway=striding(pose)?[0,1,0,-1][frame]:0;
   if(girl)drawLongHair(c,head,sway,true);
   pixels(c,15,head-(girl?4:5),girl?mehezadBack:labibBack,tones);
   if(girl){
@@ -166,7 +168,7 @@ function drawPortrait(c,person,head,pose,frame,back){
   return;
  }
  pixels(c,16,head+1,faceContours[person],{e:tone.edge,c:tone.base,h:tone.light,s:tone.shade,w:tone.warm});
- if(girl)drawLongHair(c,head,pose==='walk'?[0,1,0,-1][frame]:0,false);
+ if(girl)drawLongHair(c,head,striding(pose)?[0,1,0,-1][frame]:0,false);
  pixels(c,15,head-(girl?4:5),girl?mehezadFront:labibFront,tones);
  if(girl){
   c.line(17,head+8,16,head+12,tones.h);
@@ -177,7 +179,7 @@ function drawPortrait(c,person,head,pose,frame,back){
   c.line(25,head-2,27,head,tones.m);
  }
  const scolding=girl&&gesturePoses.mehezad.includes(pose);
- const closed=pose==='sad'||pose==='embarrassed'&&frame===0;
+ const closed=(['hug','shoulder','cuddle','kiss'].includes(pose)&&frame>0)||pose==='sad'||pose==='embarrassed'&&frame===0;
  const brow='#574043',iris='#34262d',sclera='#fae6d3';
  if(scolding){
   c.rect(19,head+5,2,1,brow);c.dot(21,head+6,brow);
@@ -203,6 +205,7 @@ function drawPortrait(c,person,head,pose,frame,back){
   c.dot(closed?26:22,head+(closed?13:12),mouth);
   if(!closed)c.dot(24,head+13,girl?'#d78d86':'#d98f77');
  }
+ expression(c,pose,frame,head,girl);
  if(girl){
   c.dot(18,head+10,'#d0a663');
   c.dot(17,head+12,'#ebc77a');c.dot(18,head+13,'#bd9258');
@@ -218,7 +221,8 @@ const gesturePoses={
  labib:['smoke-standing','embarrassed'],
  mehezad:['scold','bonk','snatch','throw'],
 };
-function gestureHand(pose,frame,top,head){
+function gestureHand(pose,frame,top,head,person){
+ const hand=momentHand(pose,frame,top,person);if(hand)return hand;
  if(pose==='smoke-standing')return frame===1||frame===2?{x:29,y:head+12}:{x:34,y:top+7};
  if(pose==='scold')return {x:35,y:top-3+frame%2*2};
  if(pose==='bonk')return [{x:28,y:top-12},{x:38,y:top-15},{x:40,y:top-12},{x:34,y:top-8}][frame];
@@ -231,12 +235,12 @@ function drawCigarette(c,x,y){
  c.dot(x+4,y,'#d38663');
 }
 function draw(person,pose,frame,back){
- const c=new Canvas(),girl=person==='mehezad',walk=pose==='walk',sit=pose==='sit'||pose==='smoke',plant=pose==='plant',water=pose==='water',sad=pose==='sad';
+ const c=new Canvas(),girl=person==='mehezad',walk=striding(pose),sit=resting(pose),plant=pose==='plant',water=pose==='water',sad=pose==='sad';
  const tone=skin[person];
  const step=walk?[0,2,0,-2][frame]:0,bob=walk&&frame%2?1:0,bend=plant?[3,5,7,4][frame]:0;
  const embarrassed=pose==='embarrassed';
  const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend,head=top-14+(sad?2:embarrassed?1:0);
- const hand=gestureHand(pose,frame,top,head);
+ const hand=gestureHand(pose,frame,top,head,person);
  const shirt=girl?colors.pink:colors.black,light=girl?colors.pinkLight:colors.blackLight,shade=girl?colors.pinkShadow:colors.blackShadow;
  if(!sit)c.oval(25,49,9,3,[31,43,44,60]);
  const trousers=girl?colors.jeans:colors.blackShadow;
@@ -251,8 +255,8 @@ function draw(person,pose,frame,back){
  if(!girl){c.line(20,top,23,top+3,light);c.line(28,top,25,top+3,'#53505a');for(let y=top+4;y<39;y+=3)c.dot(25,y,'#777078');}
  else{c.line(21,top,24,top+2,'#f7c9d5');c.line(24,top+2,28,top,'#ebafc2');c.rect(20,top+8,7,1,colors.pinkShadow);}
  const armSwing=walk?step:0;
- c.line(18,top+2,17,top+8-armSwing,shade,3);c.rect(17,top+8-armSwing,3,3,tone.base);
- if(!hand){c.line(30,top+2,31,top+8+armSwing,shirt,3);c.rect(31,top+8+armSwing,3,3,tone.light);}
+ if(!hand?.left){c.line(18,top+2,17,top+8-armSwing,shade,3);c.rect(17,top+8-armSwing,3,3,tone.base);}
+ if(!hand||hand.left){c.line(30,top+2,31,top+8+armSwing,shirt,3);c.rect(31,top+8+armSwing,3,3,tone.light);}
  drawPortrait(c,person,head,pose,frame,back);
  if(sit){c.line(18,top+4,21,40,shirt,3);c.rect(21,40,3,2,tone.light);c.line(30,top+4,27,43,shade,3);c.rect(26,42,3,2,tone.base);}
  if(plant){c.line(29,top+3,35,43+frame%2,shirt,3);c.rect(34,43+frame%2,3,2,tone.light);c.rect(17,top+6,5,7,'#b79867');c.rect(18,top+7,3,2,'#e6c994');c.dot(36,46+frame%2,'#dbc39b');c.dot(39,48,'#8e6b4d');}
@@ -262,7 +266,7 @@ function draw(person,pose,frame,back){
   for(let i=0;i<3;i++){const yy=y-4-i*5-frame%2;c.line(x+3+(i%2),yy,x+5-i%2,yy-2,[193,193,185,95-i*20]);}
  }
  if(hand){
-  c.line(29,top+3,hand.x,hand.y,shirt,3);
+  c.line(hand.left?18:29,top+3,hand.x,hand.y,shirt,3);
   c.rect(hand.x,hand.y,3,2,tone.light);
   if(pose==='smoke-standing'||pose==='snatch'&&frame>=2||pose==='throw'&&frame<2)drawCigarette(c,hand.x+2,hand.y);
   if(pose==='smoke-standing'&&frame!==0){
@@ -272,6 +276,7 @@ function draw(person,pose,frame,back){
    if(frame===3)c.dot(x-1,y-6,[215,215,203,45]);
   }
  }
+ carriedFlower(c,pose,frame,hand,person);
  return c.data;
 }
 const poses=['idle','walk','sit','plant','water','sad','smoke'],directions=['se','sw','ne','nw'];
@@ -352,8 +357,8 @@ const mix = (a, b, amount) => '#' + [1, 3, 5].map(i => {
 function drawDesi(style, pose, frame, back) {
  const cloth = new Canvas();
  const { person, kind, main, light, shade, detail, pattern } = style;
- const walking = pose === 'walk';
- const seated = pose === 'sit' || pose === 'smoke';
+ const walking = striding(pose);
+ const seated = resting(pose);
  const step = walking ? [0, 2, 0, -2][frame] : 0;
  const bend = pose === 'plant' ? [3, 5, 7, 4][frame] : 0;
  const top = (person === 'mehezad' ? 29 : 27) + (seated ? 1 : walking ? frame % 2 : 0) + bend;
@@ -373,7 +378,7 @@ function drawDesi(style, pose, frame, back) {
  const pantsShade = mix(pants, edge, 0.28);
  const base = draw(person, pose, frame, back);
  const article = new Canvas();
- const hand = gestureHand(pose, frame, top, top - 14);
+ const hand = gestureHand(pose, frame, top, top - 14, person);
  for (let y = Math.min(top, hand?.y ?? top); y < H; y++) {
   for (let x = 0; x < W; x++) {
    const offset = (y * W + x) * 4;
@@ -481,7 +486,7 @@ function drawDesi(style, pose, frame, back) {
 
 function drawFashion(style,pose,frame,back){
  if(style.pattern)return drawDesi(style,pose,frame,back);
- const c=new Canvas(),girl=style.person==='mehezad',walk=pose==='walk',sit=pose==='sit'||pose==='smoke',plant=pose==='plant';
+ const c=new Canvas(),girl=style.person==='mehezad',walk=striding(pose),sit=resting(pose),plant=pose==='plant';
  const step=walk?[0,2,0,-2][frame]:0,bob=walk&&frame%2?1:0,bend=plant?[3,5,7,4][frame]:0;
  const hip=sit?39:38,top=(girl?29:27)+(sit?1:bob)+bend;
  const trousers=style.kind==='pajamas'?style.main:style.kind==='hoodie'?(girl?'#596882':'#333e48'):style.kind==='formal'?'#222b43':style.shade;
@@ -519,10 +524,10 @@ function drawFashion(style,pose,frame,back){
   if(!back){c.dot(21,top+7,style.detail);c.dot(27,top+10,style.detail);}
  }
  const armSwing=walk?step:0;
- const hand=gestureHand(pose,frame,top,top-14);
- c.line(18,top+2,17,top+8-armSwing,style.shade,3);
- if(hand)c.line(29,top+3,hand.x,hand.y,style.main,3);
- else c.line(30,top+2,31,top+8+armSwing,style.main,3);
+ const hand=gestureHand(pose,frame,top,top-14,style.person);
+ if(!hand?.left)c.line(18,top+2,17,top+8-armSwing,style.shade,3);
+ if(hand)c.line(hand.left?18:29,top+3,hand.x,hand.y,style.main,3);
+ if(!hand||hand.left)c.line(30,top+2,31,top+8+armSwing,style.main,3);
  if(sit){c.line(18,top+4,21,40,style.main,3);c.line(30,top+4,27,43,style.shade,3);}
  if(plant)c.line(29,top+3,35,43+frame%2,style.main,3);
  if(pose==='water')c.line(29,top+4,33,top+7,style.main,3);
@@ -559,6 +564,19 @@ await sharp(fashionAtlas,{raw:{width:fashionColumns*W,height:fashionHeight,chann
 await sharp(gestureAtlas,{raw:{width:fashionColumns*W,height:gestureHeight,channels:4}}).png().toFile('public/art/fashion-gestures.png');
 await writeFile('src/garden/fashion.json',JSON.stringify({width:fashionColumns*W,height:fashionHeight,columns:fashionColumns,
  styles:fashionStyles.map(style=>style.ref),gestureHeight,gesturePoses,gestureStarts}));
+await mkdir('public/art/moments',{recursive:true});
+for(const style of [{person:'labib'},{person:'mehezad'},...fashionStyles]){
+ const sheet=Buffer.alloc(16*W*momentRows.length*H*4);
+ let i=0;
+ for(const pose of momentRows)for(const dir of directions)for(let f=0;f<4;f++){
+  const back=dir.startsWith('n'),base=!style.ref;
+  const armPose=pose==='hands'&&(dir.endsWith('w')===(style.person==='labib'))?'hands-left':pose;
+  const art=base?draw(style.person,armPose,f,back):drawFashion(style,armPose,f,back);
+  packFrame(posture(art,pose,f,style.person,base),sheet,16,i++,dir);
+ }
+ const name=style.ref?.split('/').slice(1).join('-')??style.person;
+ await sharp(sheet,{raw:{width:16*W,height:momentRows.length*H,channels:4}}).png().toFile('public/art/moments/'+name+'.png');
+}
 await writeFile('public/art/characters-LICENSE.txt','Original LoveGarden character sprites, authored for this project. No reference photographs or third-party artwork are included. Rebuild with scripts/characters.mjs.\n');
 await writeFile('public/art/fashion-LICENSE.txt','Original LoveGarden wardrobe sprites, authored for this project. No third-party artwork is included. Rebuild with scripts/characters.mjs.\n');
 console.log(`Created ${index} character frames and ${fashionIndex} wardrobe layer frames.`);

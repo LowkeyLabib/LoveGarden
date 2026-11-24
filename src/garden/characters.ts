@@ -1,3 +1,5 @@
+import {LittleMoments,type MomentPose} from './littleMoments.ts';
+import {clockState} from '../lib/clock.mjs';
 import type {GardenState,Seed} from '../lib/types';
 import {iso,groundPoint,scenery,decorSlots,grid,pondRadius,spots,decorationRadius,spotById} from './world.ts';
 import {isActiveFlower} from '../lib/flowers.ts';
@@ -6,7 +8,7 @@ export type Pose='idle'|'walk'|'sit'|'plant'|'water'|'sad'|'smoke';
 export type Direction='se'|'sw'|'ne'|'nw';
 export type Point={u:number;v:number};
 export type Gesture='lookout'|'light'|'smoking'|'surprised'|'hurry'|'scold'|'bonk'|'snatch'|'throw'|'embarrassed';
-export type CharacterPose={person:Person;pose:Pose;direction:Direction;frame:number;x:number;y:number;depth:number;hearts:boolean;gesture?:Gesture;gestureTime?:number;idleHeart?:boolean};
+export type CharacterPose={person:Person;pose:Pose;direction:Direction;frame:number;x:number;y:number;depth:number;hearts:boolean;gesture?:Gesture;gestureTime?:number;idleHeart?:boolean;moment?:MomentPose};
 type Job={key:string;seedId:string;kind:'plant'|'water';spot:number;time:number};
 type Actor={person:Person;point:Point;direction:Direction;pose:Pose;route:Point[];goal:string;queue:Job[];job:Job|null;holdUntil:number;blocked:boolean;retryAt:number};
 type Activity={target:Point;goal:string;rest?:Pose;seat?:Point;speed?:number};
@@ -154,6 +156,7 @@ export class CharacterDirector{
  private lastNow:number|null=null;
  private nextSmokeAt=0;
  private smokeBlock:number|null=null;
+ private moments=new LittleMoments();
  private scene:SmokingScene|null=null;
  private previousSeeds:Map<string,Seed>|null=null;
  private seeds:Seed[]|null=null;
@@ -163,6 +166,7 @@ export class CharacterDirector{
  private bench=scenery.find(s=>s.name==='bench')!;
 
  pause(){
+  if(this.moments.active)this.moments.cancel(this.lastNow??0);
   if(this.scene)this.nextSmokeAt=(this.lastNow??0)+smokingCooldown;
   this.scene=null;
   this.lastNow=null;
@@ -318,6 +322,7 @@ export class CharacterDirector{
     !previousDecorations.some(old=>old.slot===next.slot&&old.catalog_id===next.catalog_id&&old.inventory_id===next.inventory_id)));
   this.decorations=state.decorations;
   if(layoutChanged||this.storm!==state.angryMode){
+   if(this.moments.active)this.moments.cancel(now);
    const stormChanged=this.storm!==state.angryMode;
    this.storm=state.angryMode;this.map=new WalkingMap(state.decorations,this.storm);
    const placed=[...state.decorations].filter(d=>d.catalog_id==='bench'&&decorSlots[d.slot]).sort((a,b)=>a.inventory_id.localeCompare(b.inventory_id))[0];
@@ -362,6 +367,20 @@ export class CharacterDirector{
   }
   this.updateSmoking(now,cycle,phase,this.storm||social||!!a.job||!!b.job);
   const scene=this.scene;
+  const busy=this.storm||!!scene||!!a.job||!!b.job;
+  const wasActive=this.moments.active;
+  if(busy&&wasActive)this.moments.cancel(now);
+  const shared=busy?null:this.moments.step(now,seconds,!clockState(now,state.epoch).day&&!state.rainbowMode,
+   phase>=16&&!social,[a,b],this.map,this.bench);
+  if(wasActive!==this.moments.active){
+   for(const actor of this.actors){actor.route=[];actor.goal='';}
+   this.resetTrail();
+  }
+  if(shared)return this.actors.map((actor,i)=>{
+   const p=iso(actor.point.u,actor.point.v);
+   return {person:actor.person,pose:actor.pose,direction:actor.direction,frame:Math.floor(now/150)%4,
+    ...p,depth:shared.bench?this.bench.y+1+i*.1:p.y,hearts:state.rainbowMode,moment:shared.moment};
+  });
   const paired=(character:Actor):Activity=>{
    const labib=character===a,offset=labib?-.5:.5;
    if(visiting){

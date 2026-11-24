@@ -1,3 +1,6 @@
+import {momentCell,momentEffects,momentTexture} from './momentArt';
+import {momentRows} from './littleMoments';
+import type {ReactNode} from 'react';
 import atlas from './characters.json';
 import fashion from './fashion.json';
 import type {CharacterPose} from './characters';
@@ -19,6 +22,14 @@ function GestureEffects({character}:{character:CharacterPose}){
 export function CharacterSprite({character,layers}:{character:CharacterPose;layers:string[]}){
  const {person,x,y,hearts}=character;
  const {pose,direction,frame}=gestureFrame(character);
+ if(character.moment){
+  const {row,column}=momentCell(character.moment,person,direction),effects:ReactNode[]=[];
+  momentEffects(character.moment,person,(x,y,w,h,color,alpha)=>effects.push(<rect key={effects.length} x={x} y={y} width={w} height={h} fill={'#'+color.toString(16).padStart(6,'0')} opacity={alpha}/>));
+  return <g transform={`translate(${Math.round(x)} ${Math.round(y)})`} pointerEvents="none" aria-hidden="true">
+   <svg x={-24} y={-49} width={48} height={56} viewBox={`${column*48} ${row*56} 48 56`} overflow="hidden">
+    {[person,...layers].map(ref=><image key={ref} href={momentTexture(ref)} width={768} height={momentRows.length*56} style={{imageRendering:'pixelated'}}/>)}
+   </svg>{effects}</g>;
+ }
  const f=atlas.frames[`${person}-${pose}-${direction}-${frame}` as keyof typeof atlas.frames];
  const clothing=layers.flatMap(sprite=>{
   const layer=fashionFrame(sprite,person,pose,direction,frame);

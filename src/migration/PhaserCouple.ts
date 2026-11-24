@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import {momentCell,momentEffects,momentTexture} from '../garden/momentArt';
 import atlas from '../garden/characters.json';
 import fashion from '../garden/fashion.json';
 import {CharacterTimeline} from '../garden/characterTimeline';
@@ -22,6 +23,7 @@ function actor(scene:Phaser.Scene,person:Person){
 
 function drawExpression(g:Phaser.GameObjects.Graphics,p:CharacterPose,clock:number,reduced:boolean){
  g.clear();
+ if(p.moment)momentEffects(p.moment,p.person,(x,y,w,h,color,alpha)=>g.fillStyle(color,alpha).fillRect(x,y,w,h));
  const side=p.direction.endsWith('w')?-1:1,t=p.gestureTime??0;
  if(p.gesture==='hurry'&&p.direction.startsWith('s')){
   const y=-29+p.frame%2;
@@ -85,9 +87,12 @@ export class PhaserCouple {
   if(this.fashion===state.fashion)return;
   this.fashion=state.fashion;this.outfits=wardrobeLayers(state.fashion);
   for(const ref of [...this.outfits.labib,...this.outfits.mehezad]){
-   if(!styles.has(ref)||this.scene.textures.exists(ref)||this.loading.has(ref))continue;
-   this.loading.add(ref);
-   this.scene.load.spritesheet(ref,clothingPath(ref),{frameWidth:48,frameHeight:56});
+   if(!styles.has(ref))continue;
+   for(const [key,path] of [[ref,clothingPath(ref)],['moment/'+ref,momentTexture(ref)]]){
+    if(this.scene.textures.exists(key)||this.loading.has(key))continue;
+    this.loading.add(key);
+    this.scene.load.spritesheet(key,path,{frameWidth:48,frameHeight:56});
+   }
   }
   if(this.loading.size&&!this.scene.load.isLoading())this.scene.load.start();
  }
@@ -108,11 +113,15 @@ export class PhaserCouple {
    const depth=previous.depth+(p.depth-previous.depth)*progress;
    a.group.setPosition(x,y).setDepth(depth+x*.000001);
    const frame=gestureFrame(p);
-   a.body.setFrame(person+'-'+frame.pose+'-'+frame.direction+'-'+frame.frame);
+   const cell=p.moment?momentCell(p.moment,person,p.direction):null;
+   const bodyKey=cell?'moment/'+person:'couple';
+   const bodyFrame=cell?.index??(person+'-'+frame.pose+'-'+frame.direction+'-'+frame.frame);
+   if(a.body.texture.key!==bodyKey)a.body.setTexture(bodyKey,bodyFrame);
+   else if(a.body.frame.name!==String(bodyFrame))a.body.setFrame(bodyFrame);
    const index=(poseRow(person,frame.pose)*4+directions.indexOf(frame.direction))*4+frame.frame;
    a.layers.forEach((layer,i)=>{
-    const ref=this.outfits[person][i];
-    if(ref&&this.scene.textures.exists(ref))layer.setTexture(ref,index).setVisible(true);
+    const item=this.outfits[person][i],ref=item&&cell?'moment/'+item:item;
+    if(ref&&this.scene.textures.exists(ref))layer.setTexture(ref,cell?.index??index).setVisible(true);
     else layer.setVisible(false);
    });
    drawExpression(a.effects,p,now,reduced);

@@ -25,7 +25,7 @@ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
   // Soften the joins between grass diamonds while retaining the original edge and tufts.
   const detail=(data[i+1]-169)*.54;
   const light=Math.round((bank*12+blades+detail)/2)*2;
-  pixel(x,y,139+light*1.28,166+light,107+light*.58);
+  pixel(x,y,139+light*1.34+3*bank,166+light,107+light*.48-3*bank);
  }else if(data[i+2]>data[i]+12&&data[i+1]>data[i]+18){
   const uv=groundPoint(x+gardenBounds.x,y+gardenBounds.y);
   const radius=pondRadius(uv.u,uv.v);
@@ -34,9 +34,15 @@ for(let y=0;y<height;y++)for(let x=0;x<width;x++){
   const shallows=clamp((radius-.35)/.65)**1.7;
   const ripple=Math.sin(y*1.34+Math.sin(x*.067+y*.31)*1.6);
   const brokenLight=Math.sin(x*.067+Math.cos(y*.45))+.7*Math.cos(y*.64+x*.023);
-  const glint=ripple>.79&&brokenLight>.54?10:0;
+  const glint=ripple>.76&&brokenLight>.52?13:0;
+  const caustic=Math.max(0,Math.sin(y*.47+Math.cos(x*.13))*.6+Math.cos(x*.12-y*.41)*.4-.5)*30*shallows;
   const sand=Math.round(3*Math.sin(y*.9+x*.33))*shallows;
-  pixel(x,y,67+95*shallows+glint+sand,126+58*shallows+glint+sand,133+24*shallows+glint);
+  pixel(x,y,59+103*shallows+glint+sand+caustic,121+63*shallows+glint+sand+caustic,137+20*shallows+glint);
+ }else if(data[i]>177&&data[i+1]>150&&data[i]-data[i+1]>9&&data[i+1]-data[i+2]>24){
+  // Pale stone catches light along mineral veins, with cooler moss in worn joints.
+  const seam=Math.cos(x*.24+y*.67+Math.sin(x*.16)*2);
+  const patina=Math.round(3*Math.sin(x*.42-y*.51)+(seam>.95?-7:seam>.83?5:0));
+  pixel(x,y,data[i]+patina,data[i+1]+patina*.72,data[i+2]+patina*.55+2);
  }
 }
 // Project each tree's actual silhouette onto the ground. At the inlet, mirror the
@@ -63,6 +69,13 @@ for(const tree of scenery.filter(s=>species.includes(s.name))){
    pixel(x,y,data[i]*(1-shade),data[i+1]*(1-shade*.79),data[i+2]*(1-shade*.43));
   }
  }
+}
+// Paired arching grasses catch sunlight at the meadow edge.
+for(let blade=0;blade<2300;blade++){
+ const x=Math.floor(random()*(width-6))+3,y=Math.floor(random()*(height-6))+3;
+ if(!grass((y*width+x)*4)||!grass(((y-2)*width+x+1)*4))continue;
+ pixel(x,y,111,146,89);pixel(x+1,y-1,158,181,109);pixel(x+2,y-2,175,192,121);
+ if(blade%3===0)pixel(x-1,y-1,155,179,110);
 }
 // Small drifts of harebells, buttercups and clover leave the planting beds legible.
 for(let drift=0;drift<250;drift++){

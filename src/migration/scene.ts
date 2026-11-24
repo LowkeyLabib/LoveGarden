@@ -11,7 +11,7 @@ import {PhaserCouple} from './PhaserCouple';
 type Snapshot=()=>{state:GardenState;now:number};
 type Image=Phaser.GameObjects.Image;
 type FrameName=keyof typeof atlas.frames;
-type Drift={image:Image;x:number;y:number;kind:'petal'|'ripple'|'koi'|'firefly'};
+type Drift={image:Image;x:number;y:number;kind:'petal'|'ripple'|'koi'|'firefly'|'foliage'};
 
 const trees=['oak','cherry','pine','willow'];
 
@@ -33,6 +33,7 @@ export class GardenScene extends Phaser.Scene {
   this.load.image('ground','/art/phaser-meadow.png');
   this.load.image('trees','/art/phaser-canopies.png');
   this.load.image('objects','/art/phaser-objects.png');
+  for(const person of ['labib','mehezad'])this.load.spritesheet('moment/'+person,'/art/moments/'+person+'.png',{frameWidth:48,frameHeight:56});
   this.load.image('couple','/art/characters.png');
   this.load.image('rainbow','/art/rainbow.png');
  }
@@ -66,6 +67,7 @@ export class GardenScene extends Phaser.Scene {
   for(const p of scenery){
    const image=this.sprite(p.name as FrameName,p.x,p.y,p.y);
    this.lantern(image,p.name);
+   if(p.name==='willow'||p.name==='bush')this.ambient.push({image,x:p.x,y:p.y,kind:'foliage'});
    if(p.name==='koi')this.ambient.push({image,x:p.x,y:p.y,kind:'koi'});
    if(p.name==='cherry')this.drift('petal',p.x+7,p.y-38,p.y+.01);
    if(p.name==='lantern')this.drift('firefly',p.x+16,p.y-18,3100);
@@ -97,7 +99,7 @@ export class GardenScene extends Phaser.Scene {
   }
   if(this.storm)return;
   this.night=previewLight==='night'?1:previewLight==='day'||state.rainbowMode?0:clockState(now,state.epoch).night;
-  this.veil.setAlpha(this.night*.53);
+  this.veil.setFillStyle(Phaser.Display.Color.GetColor(Math.round(255-208*this.night),Math.round(209-152*this.night),Math.round(145-40*this.night))).setAlpha(.045+this.night*.46);
   this.rainbow?.setVisible(state.rainbowMode);
   const keep=new Set<string>();
   for(const p of worldObjects(state,now)){
@@ -135,6 +137,8 @@ export class GardenScene extends Phaser.Scene {
    if(kind==='petal'){
     const fall=(phase%11)/11;
     image.setPosition(Math.round(x+fall*13+Math.sin(phase)*3),Math.round(y+fall*27)).setAlpha(Math.sin(fall*Math.PI)*.83);
+   }else if(kind==='foliage'){
+    image.setRotation(t?Math.sin(phase*.53)*.012:0);
    }else if(kind==='koi'){
     image.setPosition(Math.round(x+Math.sin(phase*.34)*5),Math.round(y+Math.cos(phase*.34)*2));
    }else if(kind==='ripple'){

@@ -47,4 +47,13 @@ paint('plot',(x,y,color)=>{
  const crumbs=grain(x,y)*4+Math.cos(x*1.81+y*.37)*2;
  return vary([127,95,65],furrow*11+crumbs+(24-y)*.18);
 });
+for(const name of ['bush','hydrangea','wildflowers','rose-heart-arch','cherry-blossom-tree','flower-cart','romantic-gazebo']){
+ paint(name,(x,y,color)=>{
+  const rgb=[color>>16,(color>>8)&255,color&255];
+  const cluster=Math.cos(x*.76+y*.94+Math.sin(y*.41))+Math.sin(x*.48-y*.56);
+  if(rgb[1]>rgb[0]*1.07&&rgb[1]>rgb[2]*1.12)
+   return vary(rgb,cluster>1.2?13:cluster<-.9?-9:2*Math.sin(y*.37));
+  if(rgb[0]>120&&rgb[2]>rgb[1]*.98)return vary(rgb,cluster>1?12:cluster<-.9?-8:0);
+ });
+}
 await sharp(data,{raw:{width,height,channels:4}}).png().toFile('public/art/phaser-objects.png');
