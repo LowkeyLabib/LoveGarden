@@ -1,6 +1,6 @@
 # Phaser migration
 
-The feature build opens the playable Phaser garden at /. Sign-in, dialogs and writes use the existing app and Supabase permissions. Development and explicit `/?readonly=1` review links use an isolated anonymous session. Use `/?renderer=legacy&readonly=1` to compare the original renderer.
+The feature build opens the playable Phaser garden at /. Sign-in, dialogs and writes use the existing app and Supabase permissions. Development and explicit `/?readonly=1` review links use an isolated anonymous session. Use `/?renderer=legacy&readonly=1` to compare the original renderer. The Vercel Git integration builds this branch as a Preview. Its branch-scoped `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` must be available at build time to show the saved garden.
 
 | Feature | Existing source of truth |
 | --- | --- |
