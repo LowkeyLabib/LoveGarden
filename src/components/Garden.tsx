@@ -1,3 +1,4 @@
+import WishStar from './WishStar';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import type { GardenState, Seed, Gift } from '../lib/types';
@@ -17,11 +18,11 @@ import {connectGardenCamera} from '../garden/camera';
 import { iso, spots, hidingPlaces, decorSlots, scenery, gardenBounds, availablePondSpots, spotById, fitsDecorationBay } from '../garden/world';
 export { spots, hidingPlaces, decorSlots } from '../garden/world';
 
-type Props={phaser?:boolean;state:GardenState;now:number;onSpot:(n:number)=>void;onSeed:(s:Seed)=>void;onGift:(g:Gift)=>void;onPlace:(slot:number)=>void;placing:string|null};
+type Props={chime:()=>void;phaser?:boolean;state:GardenState;now:number;onSpot:(n:number)=>void;onSeed:(s:Seed)=>void;onGift:(g:Gift)=>void;onPlace:(slot:number)=>void;placing:string|null};
 type Effect={id:string;x:number;y:number;kind:'water'|'bloom'|'gift'};
 const diamond='0,-15 29,0 0,15 -29,0';
 const cameraHintKey='lovegarden.camera-hint-dismissed';
-export default function Garden({phaser=false,state,now,onSpot,onSeed,onGift,onPlace,placing}:Props){
+export default function Garden({chime,phaser=false,state,now,onSpot,onSeed,onGift,onPlace,placing}:Props){
  const [engineFailed,setEngineFailed]=useState(false);
  const onEngineError=useCallback(()=>setEngineFailed(true),[]);
  const canvas=phaser&&!engineFailed;
@@ -136,6 +137,7 @@ export default function Garden({phaser=false,state,now,onSpot,onSeed,onGift,onPl
   <g pointerEvents="none">{effects.map((effect,i)=><g key={`${effect.id}-${i}`} transform={`translate(${effect.x} ${effect.y-20})`}><g className="world-feedback">{[-12,-5,2,9,16].map((x,n)=><rect key={x} x={x} y={-n%3*5} width="3" height={effect.kind==='water'?6:3} fill={effect.kind==='water'?'#b9f2f2':'#ffe6a0'}/>)}<text textAnchor="middle" y="-18">{effect.kind==='water'?'Watered':effect.kind==='bloom'?'In bloom!':'Discovered!'}</text></g></g>)}</g>
  </>}
  </svg>
+ {canvas&&awake&&!cycle.day&&!state.angryMode&&!state.rainbowMode&&!state.noDataMode&&<WishStar key={state.role} bridge={bridge} player={state.role==="GARDENER"||state.role==="CARETAKER"} chime={chime}/>}
  <div className="camera-controls"><button aria-label="Zoom in" onClick={()=>camera.current?.zoom(1.2)}><Icon name="plus"/></button><button aria-label="Zoom out" onClick={()=>camera.current?.zoom(1/1.2)}><Icon name="minus"/></button><button className="camera-reset" onClick={()=>camera.current?.reset()}><Icon name="reset" size={17}/><span>Reset View</span></button></div>
  {showCameraHint&&!state.angryMode&&!placing&&<div className="camera-hint"><span>Drag to explore • Scroll to zoom</span><span>Drag to explore • Pinch to zoom</span></div>}
  {(state.angryMode||placing)&&<div className="world-caption">{state.angryMode?'A quiet moment in the rain.':'Choose a numbered diamond'}</div>}
