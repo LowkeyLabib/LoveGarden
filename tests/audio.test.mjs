@@ -26,8 +26,8 @@ test('one graph shares loading, crossfades for four seconds and reuses reversing
  t.mock.method(globalThis,'fetch',async()=>{fetches++;return response();});
  const audio=new GardenAudio(options,()=>{},()=>{graphs++;return ctx;});t.after(()=>audio.dispose());
  audio.unlock();audio.unlock();await settle();
- assert.equal(graphs,1);assert.equal(fetches,2);assert.equal(ctx.sources.length,1);
- assert.equal(ctx.sources[0].loop,true);assert.equal(ctx.gains[0].gain.value,.25);
+ assert.equal(graphs,1);assert.equal(fetches,1);assert.equal(ctx.sources.length,1);
+ assert.equal(ctx.sources[0].loop,false);assert.equal(ctx.gains[0].gain.value,.25);
  audio.setOptions({...options,night:true});await settle();
  assert.equal(ctx.sources.length,2);
  assert.deepEqual(ctx.gains[1].gain.ramps.at(-1),{value:0,time:4});
@@ -52,7 +52,7 @@ test('disposing during a pending download cannot start late audio',async t=>{
  const ctx=new Context();const pending=[];const signals=[];
  t.mock.method(globalThis,'fetch',(url,init)=>{signals.push(init.signal);return new Promise(resolve=>pending.push(resolve));});
  const audio=new GardenAudio(options,()=>{},()=>ctx);audio.unlock();await settle();
- assert.equal(pending.length,2);audio.dispose();pending.forEach(resolve=>resolve(response()));await settle();
+ assert.equal(pending.length,1);audio.dispose();pending.forEach(resolve=>resolve(response()));await settle();
  assert.equal(ctx.sources.length,0);assert.equal(ctx.state,'closed');assert.ok(signals.every(signal=>signal.aborted));
 });
 
@@ -68,4 +68,22 @@ test('autoplay starts when allowed, respects saved mute, and recovers on a gestu
  const waiting=new GardenAudio(options,status=>statuses.push(status),()=>blocked);t.after(()=>waiting.dispose());
  waiting.start();await settle();assert.equal(statuses.at(-1),'blocked');assert.equal(blocked.sources.length,0);
  gesture=true;waiting.unlock();await settle();assert.equal(statuses.at(-1),'playing');assert.equal(blocked.sources.length,1);
+});
+
+test('selected collections advance in order, wrap around, and loop the Angry recording',async t=>{
+ const paths=[],ctx=new Context();
+ t.mock.method(globalThis,'fetch',async url=>{paths.push(url);return response();});
+ const audio=new GardenAudio(options,()=>{},()=>ctx);t.after(()=>audio.dispose());
+ audio.start();await settle();
+ for(const [mode,count,first] of [['day',6,'sun-on-the-sill'],['night',6,'window-at-one'],['rainbow',4,'ribbon-path']]){
+  audio.setOptions({...options,mode});await settle();
+  assert.ok(paths.at(-1).endsWith(first+'.mp3'));
+  const titles=new Set();
+  for(let i=0;i<count;i++){
+   titles.add(paths.at(-1));ctx.sources.at(-1).onended();await settle();
+  }
+  assert.equal(titles.size,count);assert.ok(paths.at(-1).endsWith(first+'.mp3'));
+ }
+ audio.setOptions({...options,mode:'angry'});await settle();
+ assert.ok(paths.at(-1).endsWith('long-grey-thread.mp3'));assert.equal(ctx.sources.at(-1).loop,true);
 });

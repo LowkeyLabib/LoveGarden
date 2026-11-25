@@ -94,7 +94,7 @@ export default function App(){
   finally{modeRequest.current=false;setBusy(false);}
  }
  const displayDay=previewLight?previewLight==='day':cycle.day;
- const audio=useGardenAudio(state.angryMode||(!state.rainbowMode&&!cycle.day),!!memory?.content?.spotify_url,state.noDataMode||loading);
+ const audio=useGardenAudio(state.angryMode?'angry':state.rainbowMode?'rainbow':cycle.day?'day':'night',!!memory?.content?.spotify_url,state.noDataMode||loading);
  // No hidden garden, dialogs, navigation or animation loops remain mounted in this view.
  if(loading)return <main className="no-data-screen" aria-label="Loading garden" aria-busy="true"/>;
  if(state.noDataMode)return <main className="no-data-screen">{state.role==='GARDENER'?<><button className="no-data-message" onClick={()=>void changeNoData(false)} disabled={busy||!online} aria-label="No data. Turn off NoData Mode and restore the garden" aria-describedby={modeError?'no-data-error':undefined}>No data.</button>{modeError&&<span id="no-data-error" className="sr-only" role="alert">{modeError} Try again to restore the garden.</span>}</>:<p className="no-data-message">No data.</p>}</main>;
