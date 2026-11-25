@@ -41,7 +41,7 @@ def cell(action,view,f):
   hx=cx+(5 if side else 3 if iso else 0);hy=cy-h+1
  else:
   if side or iso: w+=2
-  if not rear:tail([(cx-w+3,cy+2),(cx-w-3,cy+4),(max(3,cx-w-6),cy),(max(3,cx-w-5),cy-4)])
+  if not rear and action!='curl':tail([(cx-w+3,cy+2),(cx-w-3,cy+4),(max(3,cx-w-6),cy),(max(3,cx-w-5),cy-4)])
   if pose==0:
    for n,x in enumerate([cx-w+4,cx+w-4]):
     stride=(1 if n else -1)*pace*(2 if action=='run' else 1) if action in ('walk','run') else 0
@@ -75,7 +75,7 @@ def cell(action,view,f):
    if pose<2:d.point((x,y+1),fill='#6d715b')
   nx=hx+off+(2 if side else 0)
   d.line((nx-1,hy+3,nx+1,hy+3),fill=pink);d.point((nx,hy+4),fill='#aa777d')
- if rear and pose!=3:tail([(cx,cy+3),(cx+1,cy+h-1),(cx+7,cy+h),(cx+10,cy+h-3)])
+ if rear and pose!=3 and action!='curl':tail([(cx,cy+3),(cx+1,cy+h-1),(cx+7,cy+h),(cx+10,cy+h-3)])
  if action=='wash':paw(hx+4,hy+3-f)
  if action=='groom':paw(hx-2,hy+5);d.point((hx,hy+4),fill=pink)
  if action=='yawn' and f in (1,2):oval(hx+2,hy+5,2,2,'#ae8484')
