@@ -24,13 +24,14 @@ export class GardenScene extends Phaser.Scene {
  private couple?:PhaserCouple;
  private veil?:Phaser.GameObjects.Rectangle;
  private rainbow?:Image;
- private stormGround?:Image;
+ private weather?:Phaser.GameObjects.Graphics;
+ private rainOpacity=0;
+ private nextFlash=0;
  private storm=false;
  private motion=window.matchMedia('(prefers-reduced-motion: reduce)');
  constructor(private snapshot:Snapshot,private view:()=>WorldView|undefined,private fallback:()=>void){super('garden');}
  preload(){
   this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR,this.fallback);
-  this.load.image('storm','/art/angry-terrain.png');
   this.load.image('ground','/art/phaser-meadow.png');
   this.load.image('trees','/art/phaser-canopies.png');
   this.load.image('objects','/art/phaser-objects.png');
@@ -81,7 +82,7 @@ export class GardenScene extends Phaser.Scene {
   const b=gardenBounds;
   this.veil=this.add.rectangle(b.x+b.width/2,b.y+b.height/2,b.width+4000,b.height+2000,0x27355f).setDepth(2000);
   this.couple=new PhaserCouple(this);
-  this.stormGround=this.add.image(b.x,b.y,'storm').setOrigin(0).setDepth(-2000).setVisible(false);
+  this.weather=this.add.graphics().setDepth(3000);
   const initial=this.view();
   if(initial)this.setView(initial);
   const {state,now}=this.snapshot();
@@ -93,14 +94,7 @@ export class GardenScene extends Phaser.Scene {
  sync(state:GardenState,now:number){
   if(!this.veil)return;
   this.couple?.sync(state,now);
-  if(state.angryMode!==this.storm){
-   this.storm=state.angryMode;
-   for(const item of this.children.list){
-    if(item instanceof Phaser.GameObjects.Image||item===this.veil)(item as Image).setVisible(!this.storm);
-   }
-   this.stormGround?.setVisible(this.storm);
-  }
-  if(this.storm)return;
+  this.storm=state.angryMode;
   this.night=previewLight==='night'?1:previewLight==='day'||state.rainbowMode?0:clockState(now,state.epoch).night;
   this.veil.setFillStyle(Phaser.Display.Color.GetColor(Math.round(255-208*this.night),Math.round(209-152*this.night),Math.round(145-40*this.night))).setAlpha(.045+this.night*.46);
   this.rainbow?.setVisible(state.rainbowMode);
@@ -133,7 +127,25 @@ export class GardenScene extends Phaser.Scene {
  }
  update(time:number){
   this.couple?.update(this.motion.matches);
-  if(this.storm)return;
+  const g=this.weather;
+  if(g&&(this.storm||this.rainOpacity>0)){
+   const dt=Math.min(100,this.game.loop.delta);
+   this.rainOpacity=Phaser.Math.Clamp(this.rainOpacity+(this.storm?1:-1)*dt/900,0,1);
+   const cam=this.cameras.main, origin=cam.getWorldPoint(0,0), w=cam.width,h=cam.height;
+   g.clear().setPosition(origin.x,origin.y).setScale(1/cam.zoom).setAlpha(this.rainOpacity);
+   g.fillStyle(0x516782,.18).fillRect(0,0,w,h);
+   const t=this.motion.matches?0:time;
+   g.lineStyle(1,0xcbe0ed,.53);
+   g.beginPath();
+   for(let i=0;i<128;i++){
+    const x=((i*179.71-t*.13)%w+w)%w,y=(i*73.17+t*.48)%h;
+    g.moveTo(x,y);g.lineTo(x-5,y+17);
+   }
+   g.strokePath();
+   if(!this.storm)this.nextFlash=0;
+   else if(!this.nextFlash||time>this.nextFlash+350)this.nextFlash=time+20000+Math.random()*25000;
+   else if(time>=this.nextFlash&&!this.motion.matches)g.fillStyle(0xe7eefb,.13*(1-(time-this.nextFlash)/350)).fillRect(0,0,w,h);
+  }
   const cat=this.couple?.wildlife;
   this.butterflies.forEach((b,i)=>{
    const escape=cat?.prey===i?cat.escape:0;

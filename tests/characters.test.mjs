@@ -29,10 +29,10 @@ test('successful plant and water transitions animate the right person without re
  state.seeds=[{...seed,watered_at:new Date(epoch+22000).toISOString()}];const watering=run(director,state,epoch+22000,20);assert.ok(watering.some(pair=>pair.some(p=>p.person==='mehezad'&&p.pose==='water')));
  assert.ok(run(new CharacterDirector(),state,epoch+240000,10).every(pair=>pair.every(p=>p.pose!=='plant'&&p.pose!=='water')));
 });
-test('Angry Mode leaves only a sad Labib; Rainbow Mode restores both with hearts',()=>{
- const state=garden(),director=new CharacterDirector();state.angryMode=true;const storm=run(director,state,epoch,20);
- assert.ok(storm.every(pair=>pair.length===1&&pair[0].person==='labib'&&!pair[0].hearts));assert.equal(storm.at(-1)[0].pose,'sad');
- state.angryMode=false;state.rainbowMode=true;const pair=director.update(state,epoch+21000,.1);assert.equal(pair.length,2);assert.ok(pair.every(p=>p.hearts));
+test('Rain Mode seats the couple apart; Rainbow Mode restores both with hearts',()=>{
+ const state=garden(),director=new CharacterDirector();state.angryMode=true;const storm=run(director,state,epoch,100);
+ assert.ok(storm.every(pair=>pair.length===2&&pair.every(p=>!p.hearts&&!p.moment)));assert.equal(storm.at(-1)[1].pose,'sit');assert.ok(storm.some(([a])=>a.pose==='smoke'));assert.ok(Math.abs(storm.at(-1)[0].x-storm.at(-1)[1].x)>20);
+ state.angryMode=false;state.rainbowMode=true;const pair=director.update(state,epoch+101000,.1);assert.equal(pair.length,2);assert.ok(pair.every(p=>p.hearts));
 });
 test('reduced motion uses stable poses and never smokes or runs walking animation',()=>{
  const state=garden(),director=new CharacterDirector();const first=director.update(state,epoch,0,true),later=director.update(state,epoch+110000,110,true);

@@ -110,7 +110,7 @@ export class PhaserCouple {
   this.refresh=false;
   const cat=this.timeline.cat(now,reduced);
   this.supportingHands.clear().setDepth(cat.depth+.1);
-  this.cat.setVisible(!this.state.angryMode).setPosition(Math.round(cat.x-cat.lift*.3),Math.round(cat.y-cat.lift)).setDepth(cat.depth)
+  this.cat.setVisible(true).setPosition(Math.round(cat.x-cat.lift*.3),Math.round(cat.y-cat.lift)).setDepth(cat.depth)
    .setFrame(catFrames.indexOf(cat.art)*16+directions.indexOf(cat.direction)*4+cat.frame);
   for(const person of people){
    const a=this.actors[person],p=current.find(p=>p.person===person);
@@ -135,6 +135,16 @@ export class PhaserCouple {
     else layer.setVisible(false);
    });
    drawExpression(a.effects,p,now,reduced);
+   if(this.state.angryMode&&person==='mehezad'&&p.pose==='sit'){
+    const g=a.effects;
+    g.fillStyle(0xa99583).fillRect(9,-33,1,20);
+    g.fillStyle(0x564863).fillRect(-5,-33,29,3).fillRect(-2,-36,23,4).fillRect(2,-39,15,4);
+    g.fillStyle(0x9c83aa).fillRect(5,-40,8,2).fillRect(1,-36,7,3);
+   }
+   if(p.pose==='smoke'){
+    const rise=reduced?3:Math.floor(now/300)%8;
+    a.effects.fillStyle(0xdad6de,.55-rise*.04).fillRect(p.direction.endsWith('w')?-9:8,-15-rise,2,2);
+   }
    if(p.catPose&&cat.lift>1){
     this.supportingHands.fillStyle(person==='labib'?0xf5d2b1:0xf8d6c3).fillRect(x+5,y-12,4,2).fillRect(x+13,y-13,3,2);
    }

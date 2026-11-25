@@ -50,7 +50,7 @@ export default function Garden({chime,phaser=false,state,now,onSpot,onSeed,onGif
  const [awake,setAwake]=useState(document.visibilityState==='visible');
  useEffect(()=>{const visibility=()=>{visiblePlants.current=null;setDepartures([]);setAwake(document.visibilityState==='visible');};document.addEventListener('visibilitychange',visibility);return()=>document.removeEventListener('visibilitychange',visibility);},[]);
  useEffect(()=>{
-  if(!awake||state.angryMode){visiblePlants.current=null;return;}
+  if(!awake){visiblePlants.current=null;return;}
   const leaving=departingFlowers(visiblePlants.current,state.seeds,now);
   visiblePlants.current=state.seeds.filter(seed=>isActiveFlower(seed,now));
   if(leaving.length&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)setDepartures(old=>[...old,...leaving.map(seed=>({seed,stage:!seed.watered_at?0:growth(seed.watered_at,now,state.epoch)===1?3:growth(seed.watered_at,now,state.epoch)<.33?1:2,until:performance.now()+FLOWER_FADE_MS}))]);
@@ -101,7 +101,7 @@ export default function Garden({chime,phaser=false,state,now,onSpot,onSeed,onGif
  }
  for(const gift of state.gifts){const p=hidingPlaces[gift.location];if(!p||gift.claimed_at)continue;objects.push({key:gift.id,...p,node:<g transform={`translate(${p.x} ${p.y})`}><g {...objectProps(`Discover ${gift.kind} ${p.name.toLowerCase()}`,()=>onGift(gift))}><rect className="gift-focus" x="-19" y="-38" width="38" height="45" rx="2"/></g>{!canvas&&<PixelSprite name={`gift-${gift.kind}`}/>}<path className="bloom-spark" d="M18-32v6m-3-3h6" stroke="#fff1ad" strokeWidth="2"/></g>});}
  for(const decoration of state.decorations){const p=decorSlots[decoration.slot];if(p&&(!canvas||decoration.catalog_id==='koi-pond'))objects.push({key:decoration.inventory_id,...p,node:<g data-decoration={decoration.catalog_id} data-slot={decoration.slot} transform={`translate(${p.x} ${p.y})`}>{!canvas&&<PixelSprite name={decoration.catalog_id}/>}{decoration.catalog_id==='koi-pond'&&<PondLife/>}</g>});}
- if(!canvas&&cat&&!state.angryMode){
+ if(!canvas&&cat){
   const row=catFrames.indexOf(cat.art),col=['se','sw','ne','nw'].indexOf(cat.direction)*4+cat.frame;
   objects.push({key:'shontu',x:cat.x,y:cat.depth,node:<g pointerEvents="none" transform={`translate(${cat.x-cat.lift*.3} ${cat.y-cat.lift}) scale(.85)`}><svg x={-24} y={-49} width={48} height={56} viewBox={`${col*48} ${row*56} 48 56`} overflow="hidden"><image href="/art/shontu.png" width={768} height={catFrames.length*56}/></svg></g>});
  }
@@ -111,12 +111,12 @@ export default function Garden({chime,phaser=false,state,now,onSpot,onSeed,onGif
  const lamps=scenery.filter(s=>s.name==='lantern').concat(state.decorations.filter(d=>d.catalog_id==='lantern'&&decorSlots[d.slot]).map(d=>({name:'lantern',...decorSlots[d.slot]})));
  return <div className="garden-world" style={{'--night':lighting} as CSSProperties} data-light={cycle.day?'day':'night'} data-sleeping={!awake} data-angry={state.angryMode} data-rainbow={state.rainbowMode}>
  {canvas&&<PhaserGarden state={state} now={now} bridge={bridge} onError={onEngineError}/>}
- <svg ref={ref} style={canvas?{position:'absolute',inset:0}:undefined} className="garden-canvas" aria-label={state.angryMode?"Angry Mode: an empty garden under gentle rain. All memories are preserved.":"Interactive isometric LoveGarden. Drag to explore; pinch, scroll, or use buttons to zoom."}>
+ <svg ref={ref} style={canvas?{position:'absolute',inset:0}:undefined} className="garden-canvas" aria-label={state.angryMode?"Rain Mode: the garden under falling rain.":"Interactive isometric LoveGarden. Drag to explore; pinch, scroll, or use buttons to zoom."}>
   <title>Mehezad and Labib's LoveGarden</title>
   <defs><radialGradient id="lily-light"><stop stopColor="#c0baff" stopOpacity=".62"/><stop offset="1" stopColor="#9289ed" stopOpacity="0"/></radialGradient></defs>
   <defs><radialGradient id="lamp-light"><stop stopColor="#ffda78" stopOpacity=".5"/><stop offset="1" stopColor="#ffd879" stopOpacity="0"/></radialGradient></defs>
   <rect x={gardenBounds.x-1600} y={gardenBounds.y-1000} width={4480} height={2728} fill="transparent" aria-hidden="true"/>
-  {state.angryMode?<StormScene terrain={!canvas}>{!canvas&&characters.map(character=><CharacterSprite key={character.person} character={character} layers={wardrobes[character.person]}/>)}</StormScene>:<>
+  <> 
   {!canvas&&<>{state.rainbowMode&&<image href="/art/rainbow.png" width="720" height="450" style={{imageRendering:'pixelated'}} pointerEvents="none"/>}
   <image href="/art/terrain.png" {...gardenBounds} style={{imageRendering:'pixelated'}} pointerEvents="none"/>
   <g transform={`translate(${iso(-2.8,11).x} ${iso(-2.8,11).y})`}><PondLife main/></g>
@@ -135,7 +135,8 @@ export default function Garden({chime,phaser=false,state,now,onSpot,onSeed,onGif
   <g opacity={1-lighting*.75} pointerEvents="none">{[[569,160],[583,179],[555,170],[351,317],[371,320]].map(([x,y],i)=><g key={i} transform={`translate(${x} ${y})`}><path className="garden-petal" d="M0 0h3v1h-1v2H0Z" fill="#f6c6d0" style={{animationDelay:`${-i*3.3}s`}}/></g>)}</g>
   {placingItem&&decorSlots.map((p,i)=>!occupiedBays.has(i)&&fitsDecorationBay(p.capacity,placingItem.catalog_id,placingSize)&&<g key={i} transform={`translate(${p.x} ${p.y})`} {...objectProps(`Place decoration in slot ${i+1}`,()=>onPlace(i))}><polygon points={diamond} className="placement-target"/><text className="slot-number" textAnchor="middle" y="4">{i+1}</text></g>)}
   <g pointerEvents="none">{effects.map((effect,i)=><g key={`${effect.id}-${i}`} transform={`translate(${effect.x} ${effect.y-20})`}><g className="world-feedback">{[-12,-5,2,9,16].map((x,n)=><rect key={x} x={x} y={-n%3*5} width="3" height={effect.kind==='water'?6:3} fill={effect.kind==='water'?'#b9f2f2':'#ffe6a0'}/>)}<text textAnchor="middle" y="-18">{effect.kind==='water'?'Watered':effect.kind==='bloom'?'In bloom!':'Discovered!'}</text></g></g>)}</g>
- </>}
+ {!canvas&&state.angryMode&&<StormScene terrain={false}/>}
+ </>
  </svg>
  {canvas&&awake&&!cycle.day&&!state.angryMode&&!state.rainbowMode&&!state.noDataMode&&<WishStar key={state.role} bridge={bridge} player={state.role==="GARDENER"||state.role==="CARETAKER"} chime={chime}/>}
  <div className="camera-controls"><button aria-label="Zoom in" onClick={()=>camera.current?.zoom(1.2)}><Icon name="plus"/></button><button aria-label="Zoom out" onClick={()=>camera.current?.zoom(1/1.2)}><Icon name="minus"/></button><button className="camera-reset" onClick={()=>camera.current?.reset()}><Icon name="reset" size={17}/><span>Reset View</span></button></div>

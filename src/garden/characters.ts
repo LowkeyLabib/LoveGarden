@@ -166,6 +166,7 @@ export class CharacterDirector{
  private decorations:GardenState['decorations']|null=null;
  private storm=false;
  private map=new WalkingMap([]);
+ private rainSmokeAt=0;
  private bench=scenery.find(s=>s.name==='bench')!;
 
  pause(){
@@ -330,14 +331,14 @@ export class CharacterDirector{
    this.cat.cancel();
    this.restSites=state.decorations.flatMap(d=>decorSlots[d.slot]?[decorSlots[d.slot]]:[]);
    const stormChanged=this.storm!==state.angryMode;
-   this.storm=state.angryMode;this.map=new WalkingMap(state.decorations,this.storm);
+   this.storm=state.angryMode;this.map=new WalkingMap(state.decorations);
    if(!this.storm&&!this.map.canWalk(this.cat.point)){
     const exit=this.map.path(this.cat.point,{u:5.5,v:7.5})?.find(p=>this.map.canWalk(p));
     if(exit)this.cat.point=exit;
    }
    const placed=[...state.decorations].filter(d=>d.catalog_id==='bench'&&decorSlots[d.slot]).sort((a,b)=>a.inventory_id.localeCompare(b.inventory_id))[0];
    this.bench=placed?{name:'bench',...decorSlots[placed.slot]}:scenery.find(s=>s.name==='bench')!;
-   if(stormChanged)this.pause();
+   if(stormChanged){this.pause();this.rainSmokeAt=0;}
    else this.resetTrail();
    for(const a of this.actors){a.goal='';a.route=[];if(this.storm){a.queue=[];a.job=null;a.holdUntil=0;}}
   }
@@ -357,8 +358,8 @@ export class CharacterDirector{
   const venue=visiting?venues[Math.floor(cycle/2)%(venues.length+1)]:undefined;
   const social=visiting||phase>=80;
   const a=this.labib,b=this.mehezad;
-  const visible=this.storm?[a]:this.actors;
-  if(reduced)return visible.map(character=>{
+  const visible=this.actors;
+  if(reduced&&!this.storm)return visible.map(character=>{
    character.queue=[];character.job=null;character.route=[];character.goal='';
    const p=this.storm?iso(10,10):iso(character.person==='labib'?8.5:9.5,12.5);
    return {person:character.person,pose:this.storm?'sad':'idle',direction:'se',frame:0,...p,depth:p.y,hearts:state.rainbowMode&&!this.storm};
@@ -428,7 +429,17 @@ export class CharacterDirector{
    const target=bay?{u:bay.u,v:bay.v+1.5}:{u:spot.u,v:spot.v+('pondSlot' in spot?(spot.v<11.2?-1.8:1.8):1)};
    return {target,goal:job.key,rest:job.kind};
   };
-  if(this.storm)this.walk(a,{target:{u:10,v:10},goal:'sad',rest:'sad'},seconds,now);
+  if(this.storm){
+   this.walk(b,paired(b),seconds,now);
+   this.walk(a,{target:{u:-2,v:15.8},goal:'rain-pond',rest:'sit'},seconds,now);
+   if(b.pose==='sit'&&Math.floor(now/3500)%5===0)b.direction='se';
+   if(a.pose==='sit'){
+    a.direction=directionTo(a.point,{u:-1.7,v:11.15});
+    if(!this.rainSmokeAt)this.rainSmokeAt=now+20000+Math.random()*20000;
+    if(now>=this.rainSmokeAt+12000)this.rainSmokeAt=now+20000+Math.random()*20000;
+    if(now>=this.rainSmokeAt)a.pose='smoke';
+   }
+  }
   else{
    const leadSegment=phase>=40?3+Math.floor((phase-40)/13):Math.floor(phase/13);
    const leadTarget=phase>=40?stroll[(leadSegment-3+Math.abs(cycle))%stroll.length]:
@@ -466,7 +477,7 @@ export class CharacterDirector{
   return visible.map((character,index)=>{
    const p=iso(character.point.u,character.point.v);
    const bench=character.pose==='sit'&&character.goal.startsWith('bench-');
-   const frame=character.pose==='walk'?Math.floor(now/150)%4:
+   const frame=character.pose==='smoke'?Math.floor(now/700)%4:character.pose==='walk'?Math.floor(now/150)%4:
     character.pose==='plant'||character.pose==='water'?Math.floor(now/280)%4:0;
    return {person:character.person,pose:character.pose,direction:character.direction,frame,...p,
     depth:bench?this.bench.y+1+index*.1:p.y,hearts:state.rainbowMode&&!this.storm,
